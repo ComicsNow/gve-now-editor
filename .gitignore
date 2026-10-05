@@ -1,0 +1,11 @@
+node_modules/
+config.json
+config.*.json
+coverage/
+*.log
+.remember/
+
+# never commit a real library DB or local data
+*.db
+*.sqlite
+*.sqlite3
