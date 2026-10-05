@@ -50,6 +50,17 @@ describe('server/comics-repo', () => {
       expect(page.length).toBe(1);
       expect(page[0].id).toBe('a');
     });
+
+    it('escapes LIKE wildcards % and _ to match literal characters only', () => {
+      insertComic(db, { id: 'd', series: '100% Danger', name: 'Issue 1.cbz', path: '/libs/A/d.cbz' });
+      insertComic(db, { id: 'e', series: 'Special_Edition', name: 'Issue 2.cbz', path: '/libs/A/e.cbz' });
+
+      const pct = searchComics(db, { q: '%' });
+      expect(pct.map((r) => r.id)).toEqual(['d']);
+
+      const underscore = searchComics(db, { q: '_' });
+      expect(underscore.map((r) => r.id)).toEqual(['e']);
+    });
   });
 
   describe('countComics', () => {
@@ -113,6 +124,15 @@ describe('server/comics-repo', () => {
     it('defaults to false when nothing is set', () => {
       const comic = { id: 'c9', series: 'S', publisher: 'P', path: '/other/x.cbz' };
       expect(resolveMangaMode(db, 'default-user', comic, libraries)).toBe(false);
+    });
+
+    it('does not match libraries when path has a common prefix without path separator', () => {
+      insertPref(db, { preferenceType: 'library', targetId: '/libs/A', mangaMode: 1 });
+      const comicInOther = { id: 'c2', series: 'Ser2', publisher: 'Pub', path: '/libs/A2/c2.cbz' };
+      expect(resolveMangaMode(db, 'default-user', comicInOther, libraries)).toBe(false);
+
+      const comicInLib = { id: 'c3', series: 'Ser3', publisher: 'Pub', path: '/libs/A/sub/c3.cbz' };
+      expect(resolveMangaMode(db, 'default-user', comicInLib, libraries)).toBe(true);
     });
   });
 });

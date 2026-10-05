@@ -41,11 +41,10 @@ describe('server/config', () => {
     expect(fromEnv.comicsNowRoot).toBe('/env-root');
   });
 
-  it('falls back to defaults on a malformed config file', () => {
+  it('throws an error on a malformed config file', () => {
     const configPath = path.join(dir, 'config.json');
     fs.writeFileSync(configPath, '{not json');
-    const config = loadConfig({ configPath, env: { COMICS_NOW_ROOT: dir } });
-    expect(config.port).toBe(3100);
+    expect(() => loadConfig({ configPath, env: { COMICS_NOW_ROOT: dir } })).toThrow(/failed to parse config file/i);
   });
 
   it('resolves library roots from the comics-now config, appending comicsLocation', () => {
@@ -98,15 +97,14 @@ describe('server/config', () => {
       expect(JSON.parse(fs.readFileSync(configPath, 'utf8'))).toEqual({ comicsNowRoot: '/x' });
     });
 
-    it('tolerates a missing or corrupt existing file', () => {
+    it('creates file when missing and rejects saving over a corrupt existing file', () => {
       const configPath = path.join(dir, 'config.json');
 
       saveConfig({ comicsNowRoot: '/a' }, { configPath });
       expect(JSON.parse(fs.readFileSync(configPath, 'utf8'))).toEqual({ comicsNowRoot: '/a' });
 
       fs.writeFileSync(configPath, '{not json');
-      saveConfig({ comicsNowRoot: '/b' }, { configPath });
-      expect(JSON.parse(fs.readFileSync(configPath, 'utf8'))).toEqual({ comicsNowRoot: '/b' });
+      expect(() => saveConfig({ comicsNowRoot: '/b' }, { configPath })).toThrow(/failed to parse config file/i);
     });
 
     it('deletes keys listed in removeKeys in the same atomic write', () => {

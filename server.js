@@ -34,7 +34,7 @@ function main() {
     process.exit(1);
   }
 
-  const db = openDatabase(config.dbPath, { busyTimeout: 5000 });
+  const db = openDatabase(config.dbPath);
   const store = createSidecarStore(config);
   const app = createApp({ config, db, store, configPath, env: process.env });
   const server = http.createServer(app);

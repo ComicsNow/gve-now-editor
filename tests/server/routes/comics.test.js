@@ -121,4 +121,16 @@ describe('routes/comics', () => {
     });
     expect(again.status).toBe(304);
   });
+
+  it('caches page dimensions across calls', async () => {
+    const first = await api(h.baseUrl, '/api/comics/c1/pages');
+    expect(first.status).toBe(200);
+    expect(first.body.pages[0].width).toBe(1);
+    expect(first.body.pages[0].height).toBe(1);
+
+    const second = await api(h.baseUrl, '/api/comics/c1/pages');
+    expect(second.status).toBe(200);
+    expect(second.body.pages[0].width).toBe(1);
+    expect(second.body.pages[0].height).toBe(1);
+  });
 });

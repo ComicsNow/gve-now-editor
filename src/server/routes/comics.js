@@ -4,9 +4,8 @@ const fs = require('fs');
 const express = require('express');
 const { searchComics, countComics, makeMangaModeResolver } = require('../comics-repo');
 const { listPages, getEntryBuffer } = require('../archive');
-const { imageDimensions } = require('../page-dims');
 const { getPageImage } = require('../page-webp');
-const { mimeFor, loadComic, appendMissing } = require('./shared');
+const { mimeFor, loadComic, appendMissing, pageDimensions } = require('./shared');
 
 const PAGE_SIZE_MAX = 100;
 
@@ -54,14 +53,11 @@ function createComicsRouter({ config, db, store }) {
       if (!found) return res.status(404).json({ error: `comic not found: ${req.params.id}` });
 
       const names = appendMissing(await listPages(found.comic.path), Object.keys(store.read(req.params.id)?.pages || {}));
-      const pages = [];
-      for (let i = 0; i < names.length; i++) {
-        let dims = null;
-        try {
-          dims = imageDimensions(await getEntryBuffer(found.comic.path, names[i]));
-        } catch {}
-        pages.push({ index: i, name: names[i], width: dims ? dims.width : null, height: dims ? dims.height : null });
-      }
+      const dims = await pageDimensions(found.comic.path, names);
+      const pages = names.map((name, index) => {
+        const d = dims.get(name);
+        return { index, name, width: d ? d.width : null, height: d ? d.height : null };
+      });
 
       const sidecar = store.read(req.params.id);
       res.json({

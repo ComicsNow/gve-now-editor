@@ -44,7 +44,7 @@ function createGuidedRouter({ config, db, store }) {
     }
   });
 
-  router.put('/:id/guided', (req, res, next) => {
+  router.put('/:id/guided', async (req, res, next) => {
     try {
       const found = loadComic(db, config, req.params.id);
       if (!found) return res.status(404).json({ error: `comic not found: ${req.params.id}` });
@@ -72,7 +72,7 @@ function createGuidedRouter({ config, db, store }) {
       const backupPath = store.backup(found.comic.id);
       store.write(found.comic.id, sidecarDoc);
       store.pruneBackups(found.comic.id);
-      markGuidedViewComplete(db, found.comic.id, store.pathFor(found.comic.id));
+      await markGuidedViewComplete(db, found.comic.id, store.pathFor(found.comic.id));
 
       res.json({ ok: true, warnings, backupPath, sidecarPath: store.pathFor(found.comic.id) });
     } catch (err) {
@@ -80,7 +80,7 @@ function createGuidedRouter({ config, db, store }) {
     }
   });
 
-  router.post('/:id/guided/reset', (req, res, next) => {
+  router.post('/:id/guided/reset', async (req, res, next) => {
     try {
       const found = loadComic(db, config, req.params.id);
       if (!found) return res.status(404).json({ error: `comic not found: ${req.params.id}` });
@@ -88,7 +88,7 @@ function createGuidedRouter({ config, db, store }) {
       const backupPath = store.backup(found.comic.id);
       const file = store.pathFor(found.comic.id);
       if (fs.existsSync(file)) fs.unlinkSync(file);
-      markGuidedViewPending(db, found.comic.id);
+      await markGuidedViewPending(db, found.comic.id);
 
       res.json({ ok: true, backupPath });
     } catch (err) {

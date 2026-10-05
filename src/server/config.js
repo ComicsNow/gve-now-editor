@@ -15,8 +15,8 @@ function readConfigFile(configPath) {
   if (!configPath || !fs.existsSync(configPath)) return {};
   try {
     return JSON.parse(fs.readFileSync(configPath, 'utf8')) || {};
-  } catch {
-    return {}; // malformed config.json falls back to defaults
+  } catch (err) {
+    throw new Error(`failed to parse config file at ${configPath}: ${err.message}`);
   }
 }
 

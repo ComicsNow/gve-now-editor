@@ -1,3 +1,4 @@
+const http = require('http');
 const { startHarness } = require('../helpers/app-harness');
 const { api } = require('../helpers/api');
 
@@ -85,5 +86,25 @@ describe('integration: export -> import -> edit round trip', () => {
     const cloneDoc = await api(h.baseUrl, '/api/comics/clone/guided');
     const cloneBubble = cloneDoc.body.pages['x1.jpg'].items.find((i) => i.kind === 'bubble');
     expect(cloneBubble.points).toEqual([[0, 0], [1, 0], [0, 1]]);
+  });
+
+  it('blocks untrusted Host headers with 403 Forbidden to protect against DNS rebinding', async () => {
+    const port = h.server.address().port;
+    const res = await new Promise((resolve, reject) => {
+      const req = http.request({
+        hostname: '127.0.0.1',
+        port,
+        path: '/api/health',
+        headers: { Host: 'evil-attacker.example.com' }
+      }, (r) => {
+        let body = '';
+        r.on('data', (chunk) => { body += chunk; });
+        r.on('end', () => resolve({ status: r.statusCode, body: JSON.parse(body) }));
+      });
+      req.on('error', reject);
+      req.end();
+    });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/untrusted or forbidden host/i);
   });
 });
