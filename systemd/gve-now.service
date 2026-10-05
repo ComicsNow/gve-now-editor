@@ -1,0 +1,20 @@
+[Unit]
+Description=GVE Now! (comics-now companion)
+After=network.target comics-now.service
+Wants=comics-now.service
+
+[Service]
+Type=simple
+User=youruser
+WorkingDirectory=/opt/gve-now
+ExecStart=/usr/local/bin/node server.js
+Restart=on-failure
+RestartSec=10s
+# LAN-reachable (bind 0.0.0.0, no auth) — a deliberate user decision
+# (2026-10-04). GVE_NOW_ALLOW_REMOTE=1 bypasses the loopback-only guard in
+# server.js; revert both this and config.json's bind to go back to loopback-only.
+Environment=GVE_NOW_ALLOW_REMOTE=1
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

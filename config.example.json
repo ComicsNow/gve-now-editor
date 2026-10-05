@@ -1,0 +1,6 @@
+{
+  "port": 3100,
+  "bind": "127.0.0.1",
+  "comicsNowRoot": "/opt/comics-now",
+  "prefsUserId": "default-user"
+}

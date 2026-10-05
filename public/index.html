@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GVE Now!</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header id="topbar">
+    <span class="brand">GVE Now!</span>
+    <button id="nav-library" class="nav-btn" type="button">Library</button>
+    <button id="nav-import" class="nav-btn" type="button">Import</button>
+    <button id="nav-settings" class="nav-btn" type="button">Settings</button>
+    <span id="dirty-flag" class="dirty" hidden>● unsaved changes</span>
+  </header>
+  <main>
+    <section id="library-view"></section>
+    <section id="import-view" hidden></section>
+    <section id="settings-view" hidden></section>
+    <section id="editor-view" hidden>
+      <div id="editor-toolbar"></div>
+      <div id="editor-body">
+        <aside id="page-list" class="pane page-pane"></aside>
+        <div id="stage-container" class="pane stage-pane"></div>
+        <aside id="order-panel" class="pane order-pane"></aside>
+        <aside id="inspector" class="pane inspector-pane"></aside>
+      </div>
+    </section>
+  </main>
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
