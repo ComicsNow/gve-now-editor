@@ -20,6 +20,8 @@ jobs:
   docker:
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
@@ -28,10 +30,17 @@ jobs:
         with:
           username: comicsnowdev
           password: ${{ secrets.DOCKER }}
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: comicsnowdev/gve-now
+          images: |
+            comicsnowdev/gve-now
+            ghcr.io/comicsnowdev/gve-now
           tags: |
             type=raw,value=1.0
             type=semver,pattern={{version}}
