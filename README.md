@@ -81,11 +81,18 @@ binds `0.0.0.0` via `GVE_NOW_ALLOW_REMOTE=1` — see below.
 
 ## Security
 
-The app has **no authentication** and can rewrite reader content; it refuses to
+The app has **no built-in authentication** and can rewrite reader content; it refuses to
 bind non-loopback addresses unless `GVE_NOW_ALLOW_REMOTE=1` is set. Remote
 binding is a deliberate LAN-trust decision: anyone who can reach the port can
-read and change the guided-view data and the config. Don't expose it beyond a
-trusted network.
+read and change the guided-view data and the config. Don't expose it directly to the
+public internet — always run containerized or remote deployments behind a secure
+reverse proxy (such as Caddy, Nginx, or Traefik with authentication and TLS) or
+within a private network/VPN.
+
+The server enforces Host header validation to prevent DNS rebinding attacks on loopback
+and LAN interfaces. To allow additional custom domain names or hostnames, set `GVE_NOW_ALLOWED_HOSTS=myhost.local,comics.example.com`.
+
+The official Docker image runs as the unprivileged `node` user.
 
 ## Development
 

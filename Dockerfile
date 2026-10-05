@@ -16,7 +16,9 @@ WORKDIR /app
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg \
  && rm -rf /var/lib/apt/lists/*
-COPY --from=build /app /app
+COPY --from=build --chown=node:node /app /app
+
+USER node
 
 ENV NODE_ENV=production \
     GVE_NOW_BIND=0.0.0.0 \

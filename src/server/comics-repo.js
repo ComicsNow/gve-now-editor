@@ -1,5 +1,7 @@
 'use strict';
 
+const path = require('path');
+
 const SUMMARY_COLUMNS = 'id, publisher, series, name, path, metadata, totalPages, updatedAt, guidedViewStatus, guidedViewError, guidedViewPath';
 
 function parseMetadata(raw) {
@@ -18,12 +20,17 @@ function toSummary(row) {
   return { ...row, metadata: parseMetadata(row.metadata) };
 }
 
+function escapeLike(str) {
+  return str.replace(/([\\%_])/g, '\\$1');
+}
+
 function whereClause({ q = '', status = '' } = {}) {
   const where = [];
   const params = [];
   if (q) {
-    where.push('(series LIKE ? OR name LIKE ?)');
-    params.push(`%${q}%`, `%${q}%`);
+    where.push("(series LIKE ? ESCAPE '\\' OR name LIKE ? ESCAPE '\\')");
+    const escaped = escapeLike(q);
+    params.push(`%${escaped}%`, `%${escaped}%`);
   }
   if (status) {
     where.push('guidedViewStatus = ?');
@@ -92,7 +99,10 @@ function makeMangaModeResolver(db, userId, libraries) {
     if (comic.series && prefMaps.series.has(comic.series)) levels.push(prefMaps.series.get(comic.series));
     if (comic.publisher && prefMaps.publisher.has(comic.publisher)) levels.push(prefMaps.publisher.get(comic.publisher));
     if (comic.path && Array.isArray(libraries) && libraries.length > 0) {
-      const root = libraries.find((dir) => comic.path.startsWith(dir));
+      const root = libraries.find((dir) => {
+        const prefix = dir.endsWith(path.sep) ? dir : dir + path.sep;
+        return comic.path === dir || comic.path.startsWith(prefix);
+      });
       if (root && prefMaps.library.has(root)) levels.push(prefMaps.library.get(root));
     }
     for (const level of levels) {

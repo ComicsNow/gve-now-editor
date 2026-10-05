@@ -101,7 +101,7 @@ function createImportRouter({ config, db, store }) {
       const backupPath = store.backup(comicId);
       store.write(comicId, sidecarDoc);
       store.pruneBackups(comicId);
-      markGuidedViewComplete(db, comicId, store.pathFor(comicId));
+      await markGuidedViewComplete(db, comicId, store.pathFor(comicId));
 
       res.json({ ok: true, summary: mapped.summary, warnings: [], backupPath, sidecarPath: store.pathFor(comicId) });
     } catch (err) {

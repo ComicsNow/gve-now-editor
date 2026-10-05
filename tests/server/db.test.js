@@ -15,11 +15,11 @@ describe('server/db', () => {
   });
   afterEach(() => rmrf(dir));
 
-  it('markGuidedViewComplete sets status/path, clears error, and never touches updatedAt', () => {
+  it('markGuidedViewComplete sets status/path, clears error, and never touches updatedAt', async () => {
     const db = openDatabase(dbPath);
     insertComic(db, { id: 'c1', guidedViewStatus: 'failed', guidedViewError: 'boom', updatedAt: 12345 });
 
-    markGuidedViewComplete(db, 'c1', '/gw/c1.json');
+    await markGuidedViewComplete(db, 'c1', '/gw/c1.json');
 
     const row = db.prepare('SELECT * FROM comics WHERE id = ?').get('c1');
     expect(row.guidedViewStatus).toBe('completed');
@@ -29,9 +29,9 @@ describe('server/db', () => {
     db.close();
   });
 
-  it('throws when the comic does not exist', () => {
+  it('throws when the comic does not exist', async () => {
     const db = openDatabase(dbPath);
-    expect(() => markGuidedViewComplete(db, 'nope', '/gw/x.json')).toThrow(/not found/i);
+    await expect(markGuidedViewComplete(db, 'nope', '/gw/x.json')).rejects.toThrow(/not found/i);
     db.close();
   });
 
@@ -46,7 +46,7 @@ describe('server/db', () => {
     ro.close();
   });
 
-  it('fails with a busy error while another connection holds a write lock, then succeeds', () => {
+  it('fails with a busy error while another connection holds a write lock, then succeeds', async () => {
     const seeder = openDatabase(dbPath);
     insertComic(seeder, { id: 'c1' });
     seeder.close();
@@ -56,12 +56,19 @@ describe('server/db', () => {
     holder.prepare('UPDATE comics SET tagStatus = ? WHERE id = ?').run('scanning', 'c1');
 
     const writer = openDatabase(dbPath, { busyTimeout: 30 });
-    expect(() => markGuidedViewComplete(writer, 'c1', '/gw/c1.json', { retries: 2, delayMs: 10 })).toThrow(/busy|locked/i);
+    let error = null;
+    try {
+      await markGuidedViewComplete(writer, 'c1', '/gw/c1.json', { retries: 2, delayMs: 10 });
+    } catch (err) {
+      error = err;
+    }
+    expect(error).not.toBeNull();
+    expect(error.message).toMatch(/busy|locked/i);
 
     holder.prepare('ROLLBACK').run();
     holder.close();
 
-    expect(markGuidedViewComplete(writer, 'c1', '/gw/c1.json', { retries: 2, delayMs: 10 })).toBe(true);
+    expect(await markGuidedViewComplete(writer, 'c1', '/gw/c1.json', { retries: 2, delayMs: 10 })).toBe(true);
     expect(writer.prepare('SELECT guidedViewStatus FROM comics WHERE id = ?').get('c1').guidedViewStatus).toBe('completed');
     writer.close();
   });

@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const { getComic, makeMangaModeResolver } = require('../comics-repo');
 const { listPages, getEntryBuffer } = require('../archive');
@@ -34,14 +35,35 @@ function canonicalType(store, id, mangaMode) {
   return mangaMode ? 'manga' : 'western';
 }
 
-// Dimensions for every page entry (null when unreadable).
+// In-memory cache for page dimensions keyed by (resolvedPath:mtime:entryName).
+const dimensionCache = new Map();
+
+function clearDimensionCache() {
+  dimensionCache.clear();
+}
+
+// Dimensions for every page entry (null when unreadable), cached across requests.
 async function pageDimensions(cbzPath, names) {
+  let mtime = 0;
+  try {
+    mtime = Math.floor(fs.statSync(cbzPath).mtimeMs);
+  } catch {}
+  const resolved = path.resolve(cbzPath);
+
   const dims = new Map();
   for (const name of names) {
-    try {
-      dims.set(name, imageDimensions(await getEntryBuffer(cbzPath, name)));
-    } catch {
-      dims.set(name, null);
+    const key = `${resolved}:${mtime}:${name}`;
+    if (dimensionCache.has(key)) {
+      dims.set(name, dimensionCache.get(key));
+    } else {
+      try {
+        const d = imageDimensions(await getEntryBuffer(cbzPath, name));
+        dimensionCache.set(key, d);
+        dims.set(name, d);
+      } catch {
+        dimensionCache.set(key, null);
+        dims.set(name, null);
+      }
     }
   }
   return dims;
@@ -55,4 +77,4 @@ function appendMissing(base, extra) {
   return out;
 }
 
-module.exports = { mimeFor, loadComic, canonicalType, pageDimensions, appendMissing, listPages };
+module.exports = { mimeFor, loadComic, canonicalType, pageDimensions, appendMissing, listPages, clearDimensionCache };
