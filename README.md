@@ -94,3 +94,11 @@ npm test                  # full suite
 npm run build:web         # rebuild the frontend bundle
 npm run build:web:watch   # rebuild on change
 ```
+
+## License
+
+AGPL-3.0-or-later. GVE Now! is a companion to — and ports code from —
+[comics-now](https://github.com/ComicsNow/comics-now), which is AGPL-3.0, so it
+carries the same license. See [LICENSE](LICENSE).
+
+Copyright (C) 2026 comicsnowdev

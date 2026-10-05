@@ -2,6 +2,7 @@
   "name": "gve-now",
   "version": "1.0.0",
   "description": "GVE Now! — guided-view editor companion app for comics-now",
+  "license": "AGPL-3.0-or-later",
   "main": "server.js",
   "bin": {
     "gve-now": "bin/gve-now.js"
