@@ -9,11 +9,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/comicsnowdev/gve-now-editor.git"
+    "url": "git+https://github.com/ComicsNow/gve-now-editor.git"
   },
-  "homepage": "https://github.com/comicsnowdev/gve-now-editor#readme",
+  "homepage": "https://github.com/ComicsNow/gve-now-editor#readme",
   "bugs": {
-    "url": "https://github.com/comicsnowdev/gve-now-editor/issues"
+    "url": "https://github.com/ComicsNow/gve-now-editor/issues"
   },
   "keywords": [
     "comics",
