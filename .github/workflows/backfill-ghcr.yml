@@ -9,7 +9,7 @@ on:
       tags:
         description: 'Space-separated tags to copy'
         required: true
-        default: '1.0 1.0.0 latest'
+        default: '1.0 1.0.0 1.1 1.1.0 latest'
 
 jobs:
   copy:
@@ -28,8 +28,8 @@ jobs:
           for t in ${{ github.event.inputs.tags }}; do
             echo "Copying $t ..."
             docker buildx imagetools create \
-              --tag ghcr.io/comicsnowdev/gve-now:$t \
+              --tag ghcr.io/comicsnow/gve-now:$t \
               docker.io/comicsnowdev/gve-now:$t
           done
           echo "Done. Resulting GHCR manifest for first tag:"
-          docker buildx imagetools inspect ghcr.io/comicsnowdev/gve-now:latest
+          docker buildx imagetools inspect ghcr.io/comicsnow/gve-now:latest

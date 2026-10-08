@@ -40,7 +40,7 @@ jobs:
         with:
           images: |
             comicsnowdev/gve-now
-            ghcr.io/comicsnowdev/gve-now
+            ghcr.io/comicsnow/gve-now
           tags: |
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{version}}
