@@ -15,6 +15,14 @@ function copyItem(item) {
   return copy;
 }
 
+function moveInArray(arr, fromIndex, toIndex) {
+  const next = arr.slice();
+  const [item] = next.splice(fromIndex, 1);
+  const idx = Math.max(0, Math.min(toIndex, next.length));
+  next.splice(idx, 0, item);
+  return next;
+}
+
 function createStore() {
   let doc = { comicId: null, type: 'western', pages: {} };
   let currentPage = null;
@@ -40,11 +48,7 @@ function createStore() {
     const p = requirePage(name);
     const from = p.order.indexOf(id);
     if (from < 0) return false;
-    const next = p.order.slice();
-    next.splice(from, 1);
-    const idx = Math.max(0, Math.min(toIndex, next.length));
-    next.splice(idx, 0, id);
-    p.order = next;
+    p.order = moveInArray(p.order, from, toIndex);
     dirty = true;
     notify();
     return true;
