@@ -144,6 +144,9 @@ function mangaDisplayOrder(items, seqBoxes, warnings) {
   return entries.concat(appended);
 }
 
+// Normalize one sidecar page into editor items + display order.
+// Manga: `panels` is a raw mixed set; split it using the legacy classification, unless
+// the page carries explicit `bubbles` (editor-written) which are authoritative.
 function extractValidBoxes(rawBoxes, rawPoints) {
   const boxes = [];
   const boxPoints = [];
@@ -190,9 +193,6 @@ function normalizeWesternPage(items, push, seqBoxes, boxes, boxPoints, bubbles, 
   return { items, order: westernDisplayOrder(items, seqBoxes, warnings), warnings };
 }
 
-// Normalize one sidecar page into editor items + display order.
-// Manga: `panels` is a raw mixed set; split it using the legacy classification, unless
-// the page carries explicit `bubbles` (editor-written) which are authoritative.
 function normalizeSidecarPage(value, type) {
   const warnings = [];
   const items = [];
@@ -227,6 +227,10 @@ function normalizeSidecarPage(value, type) {
   return normalizeWesternPage(items, push, seqBoxes, boxes, boxPoints, bubbles, bubblePoints, warnings);
 }
 
+// Editor-session invariant: a western page stops showing panels the moment it
+// has a bubble (see normalizeSidecarPage), so a live session that just gained
+// one prunes the scaffold immediately rather than at save time. Pure; returns
+// the same page object when there is nothing to drop.
 function pruneWesternPanels(page, type) {
   if (type !== 'western') return page;
   const items = Array.isArray(page.items) ? page.items : [];

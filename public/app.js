@@ -1333,6 +1333,39 @@
         if (appended.length > 0) warnings.push("appended-items");
         return entries.concat(appended);
       }
+      function extractValidBoxes(rawBoxes, rawPoints) {
+        const boxes = [];
+        const boxPoints = [];
+        for (let i = 0; i < rawBoxes.length; i++) {
+          const box = normalizeBox(rawBoxes[i]);
+          if (box) {
+            boxes.push(box);
+            boxPoints.push(normalizePoints(rawPoints[i]));
+          }
+        }
+        return { boxes, boxPoints };
+      }
+      function normalizeMangaPage(items, push, seqBoxes, boxes, boxPoints, bubbles, bubblePoints, warnings) {
+        const seqKeys = new Set(seqBoxes.map(boxKey2));
+        const editorWritten = bubbles.length > 0 && bubbles.every((b) => seqKeys.has(boxKey2(b)));
+        if (editorWritten) {
+          for (let i = 0; i < boxes.length; i++) push("panel", boxes[i], boxPoints[i]);
+          for (let i = 0; i < bubbles.length; i++) push("bubble", bubbles[i], bubblePoints[i]);
+        } else {
+          for (let i = 0; i < boxes.length; i++) push(classifyMangaChild(boxes[i], boxes) ? "bubble" : "panel", boxes[i], boxPoints[i]);
+          for (let i = 0; i < bubbles.length; i++) push("bubble", bubbles[i], bubblePoints[i]);
+        }
+        return { items, order: mangaDisplayOrder(items, seqBoxes, warnings), warnings };
+      }
+      function normalizeWesternPage(items, push, seqBoxes, boxes, boxPoints, bubbles, bubblePoints, warnings) {
+        for (let i = 0; i < boxes.length; i++) push("panel", boxes[i], boxPoints[i]);
+        for (let i = 0; i < bubbles.length; i++) push("bubble", bubbles[i], bubblePoints[i]);
+        const bubblesOnly = items.filter((i) => i.kind === "bubble");
+        if (bubblesOnly.length > 0) {
+          return { items: bubblesOnly, order: westernBubbleOrder(bubblesOnly, seqBoxes, warnings), warnings };
+        }
+        return { items, order: westernDisplayOrder(items, seqBoxes, warnings), warnings };
+      }
       function normalizeSidecarPage(value, type) {
         const warnings = [];
         const items = [];
@@ -1355,49 +1388,12 @@
         const rawPanelPoints = Array.isArray(page.panelPoints) ? page.panelPoints : [];
         const rawBubblePoints = Array.isArray(page.bubblePoints) ? page.bubblePoints : [];
         const seqBoxes = (Array.isArray(page.sequence) ? page.sequence : []).map(normalizeBox).filter(Boolean);
+        const { boxes, boxPoints } = extractValidBoxes(rawPanels, rawPanelPoints);
+        const { boxes: bubbles, boxPoints: bubblePoints } = extractValidBoxes(rawBubbles, rawBubblePoints);
         if (type === "manga") {
-          const boxes = [];
-          const boxPoints = [];
-          const bubbles = [];
-          const bubblePoints = [];
-          for (let i = 0; i < rawPanels.length; i++) {
-            const box = normalizeBox(rawPanels[i]);
-            if (box) {
-              boxes.push(box);
-              boxPoints.push(normalizePoints(rawPanelPoints[i]));
-            }
-          }
-          for (let i = 0; i < rawBubbles.length; i++) {
-            const box = normalizeBox(rawBubbles[i]);
-            if (box) {
-              bubbles.push(box);
-              bubblePoints.push(normalizePoints(rawBubblePoints[i]));
-            }
-          }
-          const seqKeys = new Set(seqBoxes.map(boxKey2));
-          const editorWritten = bubbles.length > 0 && bubbles.every((b) => seqKeys.has(boxKey2(b)));
-          if (editorWritten) {
-            for (let i = 0; i < boxes.length; i++) push("panel", boxes[i], boxPoints[i]);
-            for (let i = 0; i < bubbles.length; i++) push("bubble", bubbles[i], bubblePoints[i]);
-          } else {
-            for (let i = 0; i < boxes.length; i++) push(classifyMangaChild(boxes[i], boxes) ? "bubble" : "panel", boxes[i], boxPoints[i]);
-            for (let i = 0; i < bubbles.length; i++) push("bubble", bubbles[i], bubblePoints[i]);
-          }
-          return { items, order: mangaDisplayOrder(items, seqBoxes, warnings), warnings };
+          return normalizeMangaPage(items, push, seqBoxes, boxes, boxPoints, bubbles, bubblePoints, warnings);
         }
-        for (let i = 0; i < rawPanels.length; i++) {
-          const box = normalizeBox(rawPanels[i]);
-          if (box) push("panel", box, normalizePoints(rawPanelPoints[i]));
-        }
-        for (let i = 0; i < rawBubbles.length; i++) {
-          const box = normalizeBox(rawBubbles[i]);
-          if (box) push("bubble", box, normalizePoints(rawBubblePoints[i]));
-        }
-        const bubblesOnly = items.filter((i) => i.kind === "bubble");
-        if (bubblesOnly.length > 0) {
-          return { items: bubblesOnly, order: westernBubbleOrder(bubblesOnly, seqBoxes, warnings), warnings };
-        }
-        return { items, order: westernDisplayOrder(items, seqBoxes, warnings), warnings };
+        return normalizeWesternPage(items, push, seqBoxes, boxes, boxPoints, bubbles, bubblePoints, warnings);
       }
       function pruneWesternPanels2(page, type) {
         if (type !== "western") return page;
