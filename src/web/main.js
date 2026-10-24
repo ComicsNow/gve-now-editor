@@ -43,6 +43,22 @@ let session = null;
 let stage = null;
 let toastTimer = null;
 
+let cachedPageItems = null;
+const cachedItemsMap = new Map();
+
+function getPageItem(page, id) {
+  if (!page || !page.items) return null;
+  if (cachedPageItems !== page.items || cachedItemsMap.size !== page.items.length) {
+    cachedItemsMap.clear();
+    for (let i = 0; i < page.items.length; i++) {
+      const item = page.items[i];
+      cachedItemsMap.set(item.id, item);
+    }
+    cachedPageItems = page.items;
+  }
+  return cachedItemsMap.get(id) || null;
+}
+
 // ---------- view switching ----------
 
 function showView(name) {
@@ -149,7 +165,7 @@ function handleAdd(kind, box, points) {
 
 function handleUpdateBox(id, box) {
   const page = store.getPage();
-  const item = page && page.items.find((i) => i.id === id);
+  const item = getPageItem(page, id);
   store.updateItem(id, box, shapeFor(item, box));
 }
 
@@ -178,7 +194,7 @@ function nudgeSelection(dx, dy, step) {
   if (!session || !page || !session.selection.size) return;
   pushSnapshot();
   for (const id of session.selection) {
-    const item = page.items.find((i) => i.id === id);
+    const item = getPageItem(page, id);
     if (item) {
       const box = translateBox(item.box, dx * step, dy * step, page, { clamp: false });
       store.updateItem(id, box, shapeFor(item, box));
@@ -254,7 +270,7 @@ function renderOrder() {
 function renderInspectorPanel() {
   const page = store.getPage();
   const ids = session ? [...session.selection] : [];
-  const item = page && ids.length === 1 ? page.items.find((i) => i.id === ids[0]) : null;
+  const item = page && ids.length === 1 ? getPageItem(page, ids[0]) : null;
   const badge = item && page ? page.order.indexOf(item.id) + 1 : null;
   renderInspector(el.inspector, {
     item,
