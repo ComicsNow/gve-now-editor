@@ -12,8 +12,9 @@ function buildCheckReport({ config, db }) {
   const dbIds = new Set();
   const completedIds = new Set();
   try {
-    comics = db.prepare('SELECT COUNT(*) AS n FROM comics').get().n;
-    for (const row of db.prepare(`SELECT id, guidedViewStatus FROM comics`).iterate()) {
+    const rows = db.prepare(`SELECT id, guidedViewStatus FROM comics`).all();
+    comics = rows.length;
+    for (const row of rows) {
       dbIds.add(row.id);
       if (row.guidedViewStatus === 'completed') completedIds.add(row.id);
     }
