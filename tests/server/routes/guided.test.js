@@ -184,6 +184,46 @@ describe('routes/guided', () => {
       expect(h.store.read('c1')).toEqual(interleavedSidecar());
     });
 
+    it('degrades to full regeneration if the existing sidecar is unreadable', async () => {
+      const get = await api(h.baseUrl, '/api/comics/c1/guided');
+      const doc = get.body;
+
+      // Mock an unreadable store during mergeSidecar (but let canonicalType read it, or fail gracefully)
+      const originalRead = h.store.read;
+      let readCount = 0;
+      h.store.read = (id) => {
+        readCount++;
+        // The PUT route calls store.read twice: once in canonicalType and once before mergeSidecar.
+        // We only want the second one to fail to test the merge behavior specifically,
+        // or we just let it fail after the first successful read.
+        if (readCount === 2) {
+          throw new Error('Unreadable');
+        }
+        return originalRead.call(h.store, id);
+      };
+
+      const put = await api(h.baseUrl, '/api/comics/c1/guided', { method: 'PUT', body: doc });
+      expect(put.status).toBe(200);
+
+      // Restore
+      h.store.read = originalRead;
+
+      const saved = h.store.read('c1');
+
+      // The interleaved bubbles are reordered strictly sequentially in Y-X because
+      // it was regenerated fully, rather than keeping the custom verbatim sequence.
+      expect(saved.pages['p1.jpg']).toEqual({
+        panels: [],
+        bubbles: [[10, 110, 20, 20], [10, 10, 20, 20], [90, 10, 10, 10]],
+        sequence: [[10, 110, 20, 20], [10, 10, 20, 20], [90, 10, 10, 10]]
+      });
+      expect(saved.pages['p2.jpg']).toEqual({
+        panels: [],
+        bubbles: [[5, 55, 5, 5], [5, 5, 5, 5], [35, 5, 5, 5]],
+        sequence: [[5, 55, 5, 5], [5, 5, 5, 5], [35, 5, 5, 5]]
+      });
+    });
+
     it('canonicalizes only the edited page and keeps the rest verbatim', async () => {
       const get = await api(h.baseUrl, '/api/comics/c1/guided');
       const doc = get.body;
