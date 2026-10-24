@@ -1106,6 +1106,7 @@
       function intersectionOverArea(a, b) {
         const [ax, ay, aw, ah] = a;
         const [bx, by, bw, bh] = b;
+        if (ax + aw <= bx || bx + bw <= ax || ay + ah <= by || by + bh <= ay) return 0;
         const x1 = Math.max(ax, bx);
         const y1 = Math.max(ay, by);
         const x2 = Math.min(ax + aw, bx + bw);
@@ -1118,6 +1119,7 @@
       function iou(a, b) {
         const [ax, ay, aw, ah] = a;
         const [bx, by, bw, bh] = b;
+        if (ax + aw <= bx || bx + bw <= ax || ay + ah <= by || by + bh <= ay) return 0;
         const x1 = Math.max(ax, bx);
         const y1 = Math.max(ay, by);
         const x2 = Math.min(ax + aw, bx + bw);
@@ -1193,17 +1195,27 @@
       function mangaGeometryOrder(sortedPanels, sortedBubbles) {
         const out = [];
         const owner = /* @__PURE__ */ new Map();
+        const panelBubbles = /* @__PURE__ */ new Map();
         for (const bubble of sortedBubbles) {
           for (const panel of sortedPanels) {
             if (intersectionOverArea(bubble, panel) >= PARENT_IOA) {
               owner.set(bubble, panel);
+              let list = panelBubbles.get(panel);
+              if (!list) {
+                list = [];
+                panelBubbles.set(panel, list);
+              }
+              list.push(bubble);
               break;
             }
           }
         }
         for (const panel of sortedPanels) {
-          for (const bubble of sortedBubbles) {
-            if (owner.get(bubble) === panel) out.push({ kind: "bubble", box: bubble });
+          const bubbles = panelBubbles.get(panel);
+          if (bubbles) {
+            for (let i = 0; i < bubbles.length; i++) {
+              out.push({ kind: "bubble", box: bubbles[i] });
+            }
           }
           out.push({ kind: "panel", box: panel });
         }
