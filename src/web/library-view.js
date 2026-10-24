@@ -15,6 +15,7 @@ function createLibraryView(el, { api, onOpen, onExport }) {
   input.className = 'search-input';
   input.type = 'search';
   input.placeholder = 'Search series or file name…';
+  input.setAttribute('aria-label', 'Search series or file name');
   const button = document.createElement('button');
   button.type = 'submit';
   button.textContent = 'Search';

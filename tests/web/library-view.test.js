@@ -41,7 +41,9 @@ describe('web/library-view', () => {
     createLibraryView(el, { api, onOpen: jest.fn(), onExport: jest.fn() });
     await flush();
 
-    el.querySelector('.search-input').value = 'alp';
+    const searchInput = el.querySelector('.search-input');
+    expect(searchInput.getAttribute('aria-label')).toBe('Search series or file name');
+    searchInput.value = 'alp';
     el.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await flush();
     expect(api.listComics).toHaveBeenLastCalledWith({ q: 'alp', status: 'completed', limit: 50, offset: 0 });

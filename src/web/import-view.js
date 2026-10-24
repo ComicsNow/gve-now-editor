@@ -14,6 +14,7 @@ function createImportView(el, { api, onOpenEditor } = {}) {
   fileInput.type = 'file';
   fileInput.accept = '.json,application/json';
   fileInput.className = 'import-file';
+  fileInput.setAttribute('aria-label', 'Select JSON file to import');
   fileRow.appendChild(fileInput);
 
   const status = document.createElement('div');
@@ -101,6 +102,7 @@ function createImportView(el, { api, onOpenEditor } = {}) {
     input.className = 'manual-input';
     input.type = 'search';
     input.placeholder = 'Choose a different comic…';
+    input.setAttribute('aria-label', 'Search comics to import');
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = 'Search';
