@@ -186,6 +186,25 @@ function createStage(container, handlers = {}) {
     }
   }
 
+  function handleMarqueeUp(finished, e) {
+    if (finished.ghost) finished.ghost.remove();
+    const p = getNative(e.clientX, e.clientY);
+    const box = boxFromPoints(finished.start.x, finished.start.y, p.x, p.y).map(Math.round);
+    box[0] = Math.max(0, Math.min(box[0], page.width));
+    box[1] = Math.max(0, Math.min(box[1], page.height));
+    box[2] = Math.max(0, Math.min(box[2], page.width - box[0]));
+    box[3] = Math.max(0, Math.min(box[3], page.height - box[1]));
+    if (box[2] >= MIN_BOX_SIZE && box[3] >= MIN_BOX_SIZE && handlers.onAdd) {
+      handlers.onAdd(finished.kindOf, box);
+    }
+  }
+
+  function handlePanUp(finished) {
+    if (!finished.moved && handlers.onSelect) {
+      handlers.onSelect(null, { additive: false });
+    }
+  }
+
   function onWindowUp(e) {
     if (!drag) return;
     const finished = drag;
@@ -194,18 +213,9 @@ function createStage(container, handlers = {}) {
     window.removeEventListener('pointerup', onWindowUp);
 
     if (finished.kind === 'marquee') {
-      if (finished.ghost) finished.ghost.remove();
-      const p = getNative(e.clientX, e.clientY);
-      const box = boxFromPoints(finished.start.x, finished.start.y, p.x, p.y).map(Math.round);
-      box[0] = Math.max(0, Math.min(box[0], page.width));
-      box[1] = Math.max(0, Math.min(box[1], page.height));
-      box[2] = Math.max(0, Math.min(box[2], page.width - box[0]));
-      box[3] = Math.max(0, Math.min(box[3], page.height - box[1]));
-      if (box[2] >= MIN_BOX_SIZE && box[3] >= MIN_BOX_SIZE && handlers.onAdd) {
-        handlers.onAdd(finished.kindOf, box);
-      }
-    } else if (finished.kind === 'pan' && !finished.moved && handlers.onSelect) {
-      handlers.onSelect(null, { additive: false });
+      handleMarqueeUp(finished, e);
+    } else if (finished.kind === 'pan') {
+      handlePanUp(finished);
     }
   }
 
