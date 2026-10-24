@@ -1244,21 +1244,15 @@
         return boxes.some((other) => other !== box && intersectionOverArea(box, other) >= CHILD_IOA);
       }
       function matchSequence(items, seqBoxes) {
-        const used = /* @__PURE__ */ new Set();
+        const matched = /* @__PURE__ */ new Set();
         const seqPos = /* @__PURE__ */ new Map();
         let dropped = 0;
         for (let s = 0; s < seqBoxes.length; s++) {
-          let hit = null;
-          for (const item of items) {
-            if (used.has(item.id)) continue;
-            if (boxesEqual(item.box, seqBoxes[s])) {
-              hit = item;
-              break;
-            }
-          }
-          if (hit) {
-            used.add(hit.id);
-            seqPos.set(hit.id, s);
+          const seqBox = seqBoxes[s];
+          const match = items.find((i) => !matched.has(i.id) && boxesEqual(i.box, seqBox));
+          if (match) {
+            matched.add(match.id);
+            seqPos.set(match.id, s);
           } else {
             dropped++;
           }
