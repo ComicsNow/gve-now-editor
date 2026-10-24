@@ -6,8 +6,11 @@ const express = require('express');
 function createHealthRouter({ config, db }) {
   const router = express.Router();
 
+  const countStmt = db.prepare('SELECT COUNT(id) FROM comics').pluck();
+  const checkStmt = db.prepare('SELECT 1 FROM comics WHERE id = ?').pluck();
+
   router.get('/health', (req, res) => {
-    const ids = new Set(db.prepare('SELECT id FROM comics').all().map((row) => row.id));
+    const comicsCount = countStmt.get();
 
     let total = 0;
     let orphans = 0;
@@ -15,7 +18,8 @@ function createHealthRouter({ config, db }) {
       for (const file of fs.readdirSync(config.guidedViewDir)) {
         if (!file.endsWith('.json')) continue;
         total++;
-        if (!ids.has(file.slice(0, -5))) orphans++;
+        const id = file.slice(0, -5);
+        if (!checkStmt.get(id)) orphans++;
       }
     }
 
@@ -28,7 +32,7 @@ function createHealthRouter({ config, db }) {
         port: config.port,
         bind: config.bind
       },
-      db: { comics: ids.size },
+      db: { comics: comicsCount },
       sidecars: { total, orphans }
     });
   });
