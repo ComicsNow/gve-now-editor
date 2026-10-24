@@ -1,0 +1,23 @@
+--- src/shared/sidecar.js
++++ src/shared/sidecar.js
+@@ -179,6 +179,20 @@
+   return { items, order: mangaDisplayOrder(items, seqBoxes, warnings), warnings };
+ }
+
++function normalizeWesternPage(items, push, seqBoxes, boxes, boxPoints, bubbles, bubblePoints, warnings) {
++  for (let i = 0; i < boxes.length; i++) push('panel', boxes[i], boxPoints[i]);
++  for (let i = 0; i < bubbles.length; i++) push('bubble', bubbles[i], bubblePoints[i]);
++  // On a western page with bubbles the reader steps the bubbles alone
++  // (sequence = bubbles) and the panels are detector scaffold that only ever
++  // helped order the dialogue — so the editor shows and keeps bubbles only.
++  // Bubble-less pages keep their panels: there the reader steps the panels.
++  const bubblesOnly = items.filter((i) => i.kind === 'bubble');
++  if (bubblesOnly.length > 0) {
++    return { items: bubblesOnly, order: westernBubbleOrder(bubblesOnly, seqBoxes, warnings), warnings };
++  }
++  return { items, order: westernDisplayOrder(items, seqBoxes, warnings), warnings };
++}
++
+ // Normalize one sidecar page into editor items + display order.
+ // Manga: `panels` is a raw mixed set; split it using the legacy classification, unless
+ // the page carries explicit `bubbles` (editor-written) which are authoritative.

@@ -1,0 +1,22 @@
+--- src/shared/sidecar.js
++++ src/shared/sidecar.js
+@@ -147,6 +147,19 @@
+   return entries.concat(appended);
+ }
+
++function extractValidBoxes(rawBoxes, rawPoints) {
++  const boxes = [];
++  const boxPoints = [];
++  for (let i = 0; i < rawBoxes.length; i++) {
++    const box = normalizeBox(rawBoxes[i]);
++    if (box) {
++      boxes.push(box);
++      boxPoints.push(normalizePoints(rawPoints[i]));
++    }
++  }
++  return { boxes, boxPoints };
++}
++
+ // Normalize one sidecar page into editor items + display order.
+ // Manga: `panels` is a raw mixed set; split it using the legacy classification, unless
+ // the page carries explicit `bubbles` (editor-written) which are authoritative.

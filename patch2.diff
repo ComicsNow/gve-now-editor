@@ -1,0 +1,28 @@
+--- src/shared/sidecar.js
++++ src/shared/sidecar.js
+@@ -160,6 +160,25 @@
+   return { boxes, boxPoints };
+ }
+
++function normalizeMangaPage(items, push, seqBoxes, boxes, boxPoints, bubbles, bubblePoints, warnings) {
++  // Editor-written pages have pure panels and a bubbles list the sequence
++  // references (editor regeneration writes sequence = panels + bubbles).
++  // Legacy pages can carry an unreferenced bubbles list (a separate detection
++  // pass) — the reader keeps the heuristic classification there, so the
++  // editor must too, keeping those bubbles as (orphan) bubble items.
++  const seqKeys = new Set(seqBoxes.map(boxKey));
++  const editorWritten = bubbles.length > 0 && bubbles.every((b) => seqKeys.has(boxKey(b)));
++  if (editorWritten) {
++    for (let i = 0; i < boxes.length; i++) push('panel', boxes[i], boxPoints[i]);
++    for (let i = 0; i < bubbles.length; i++) push('bubble', bubbles[i], bubblePoints[i]);
++  } else {
++    for (let i = 0; i < boxes.length; i++) push(classifyMangaChild(boxes[i], boxes) ? 'bubble' : 'panel', boxes[i], boxPoints[i]);
++    for (let i = 0; i < bubbles.length; i++) push('bubble', bubbles[i], bubblePoints[i]);
++  }
++
++  return { items, order: mangaDisplayOrder(items, seqBoxes, warnings), warnings };
++}
++
+ // Normalize one sidecar page into editor items + display order.
+ // Manga: `panels` is a raw mixed set; split it using the legacy classification, unless
+ // the page carries explicit `bubbles` (editor-written) which are authoritative.
