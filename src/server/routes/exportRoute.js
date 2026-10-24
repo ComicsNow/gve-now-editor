@@ -44,4 +44,4 @@ function createExportRouter({ config, db, store, appVersion }) {
   return router;
 }
 
-module.exports = { createExportRouter };
+module.exports = { createExportRouter, contentDisposition };

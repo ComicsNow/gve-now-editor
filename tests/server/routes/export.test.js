@@ -1,5 +1,6 @@
 const { startHarness } = require('../../helpers/app-harness');
 const { api } = require('../../helpers/api');
+const { contentDisposition } = require('../../../src/server/routes/exportRoute');
 
 const sidecar = {
   comicId: 'c1',
@@ -65,5 +66,27 @@ describe('routes/export', () => {
     expect(status).toBe(404);
     expect(String(body.error)).toMatch(/guided|sidecar/i);
     await h2.close();
+  });
+});
+
+describe('contentDisposition', () => {
+  it('returns standard attachment format for pure ASCII filenames', () => {
+    expect(contentDisposition('comic.cbz')).toBe('attachment; filename="comic.cbz"');
+    expect(contentDisposition('123 abc.json')).toBe('attachment; filename="123 abc.json"');
+  });
+
+  it('replaces quotes and backslashes with underscores', () => {
+    expect(contentDisposition('comic"quote".cbz')).toBe('attachment; filename="comic_quote_.cbz"');
+    expect(contentDisposition('backslash\\file.cbz')).toBe('attachment; filename="backslash_file.cbz"');
+    expect(contentDisposition('mix"ed\\characters.cbz')).toBe('attachment; filename="mix_ed_characters.cbz"');
+  });
+
+  it('generates ASCII fallback and RFC 5987 encoded filename* for non-ASCII characters', () => {
+    expect(contentDisposition('Ünïcode Ångström.cbz')).toBe(
+      'attachment; filename="_n_code _ngstr_m.cbz"; filename*=UTF-8\'\'%C3%9Cn%C3%AFcode%20%C3%85ngstr%C3%B6m.cbz'
+    );
+    expect(contentDisposition('漫画.cbz')).toBe(
+      'attachment; filename="__.cbz"; filename*=UTF-8\'\'%E6%BC%AB%E7%94%BB.cbz'
+    );
   });
 });
