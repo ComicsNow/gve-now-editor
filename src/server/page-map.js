@@ -54,6 +54,67 @@ function mapPoints(points, sx, sy) {
   return points.map((pts) => (Array.isArray(pts) ? pts.map(([x, y]) => [Math.round(x * sx), Math.round(y * sy)]) : null));
 }
 
+function transformPage(source, sourceName, matchType, targetDims, targetName, summary) {
+  const dims = targetDims[targetName] || null;
+  let out = {
+    sourceName,
+    matchType,
+    width: source.width,
+    height: source.height,
+    panels: source.panels || [],
+    bubbles: source.bubbles || [],
+    sequence: source.sequence || []
+  };
+  if (source.panelPoints) out.panelPoints = source.panelPoints;
+  if (source.bubblePoints) out.bubblePoints = source.bubblePoints;
+  if (dims && Number.isFinite(dims.width) && Number.isFinite(dims.height) && Number.isFinite(source.width) && Number.isFinite(source.height) && source.width > 0 && source.height > 0) {
+    const sx = dims.width / source.width;
+    const sy = dims.height / source.height;
+    if (Math.abs((dims.width - source.width) / source.width) > 0.01 || Math.abs((dims.height - source.height) / source.height) > 0.01) {
+      const panels = mapBoxes(out.panels, sx, sy, dims.width, dims.height);
+      const bubbles = mapBoxes(out.bubbles, sx, sy, dims.width, dims.height);
+      const sequence = mapBoxes(out.sequence, sx, sy, dims.width, dims.height);
+      out = { ...out, panels: panels.boxes, bubbles: bubbles.boxes, sequence: sequence.boxes };
+      if (out.panelPoints) out.panelPoints = mapPoints(out.panelPoints, sx, sy);
+      if (out.bubblePoints) out.bubblePoints = mapPoints(out.bubblePoints, sx, sy);
+      summary.scaled++;
+      // Count only visible boxes; sequence entries always mirror a panel/bubble box.
+      summary.clamped += panels.clampedCount + bubbles.clampedCount;
+    }
+    out.width = dims.width;
+    out.height = dims.height;
+  }
+  return out;
+}
+
+function matchNameBased(targetPages, byName, byLower, byBase, matchedSources, attach, unmatchedTargets) {
+  for (const targetName of targetPages) {
+    if (byName.has(targetName)) {
+      attach(targetName, byName.get(targetName), 'exact');
+    } else if (byLower.has(targetName.toLowerCase())) {
+      attach(targetName, byLower.get(targetName.toLowerCase()), 'ci');
+    } else if (byBase.has(baseName(targetName)) && !matchedSources.has(byBase.get(baseName(targetName)))) {
+      attach(targetName, byBase.get(baseName(targetName)), 'basename');
+    } else {
+      unmatchedTargets.push(targetName);
+    }
+  }
+}
+
+function matchPositional(sourceNames, matchedSources, unmatchedTargets, attach, result, summary) {
+  // Positional leftovers, numeric order on both sides.
+  const leftoverSources = sourceNames.filter((name) => !matchedSources.has(name)).sort(numericCompare);
+  const sortedTargets = unmatchedTargets.slice().sort(numericCompare);
+  for (let i = 0; i < sortedTargets.length; i++) {
+    if (i < leftoverSources.length) {
+      attach(sortedTargets[i], leftoverSources[i], 'positional');
+    } else {
+      result[sortedTargets[i]] = null;
+      summary.emptyTarget++;
+    }
+  }
+}
+
 function mapPages({ pages, pageOrder, targetPages, targetDims = {} }) {
   const sourceNames = pageOrder && pageOrder.length > 0 ? pageOrder : Object.keys(pages);
   const byName = new Map(sourceNames.map((name) => [name, name]));
@@ -72,63 +133,14 @@ function mapPages({ pages, pageOrder, targetPages, targetDims = {} }) {
 
   const attach = (targetName, sourceName, matchType) => {
     const source = pages[sourceName];
-    const dims = targetDims[targetName] || null;
-    let out = {
-      sourceName,
-      matchType,
-      width: source.width,
-      height: source.height,
-      panels: source.panels || [],
-      bubbles: source.bubbles || [],
-      sequence: source.sequence || []
-    };
-    if (source.panelPoints) out.panelPoints = source.panelPoints;
-    if (source.bubblePoints) out.bubblePoints = source.bubblePoints;
-    if (dims && Number.isFinite(dims.width) && Number.isFinite(dims.height) && Number.isFinite(source.width) && Number.isFinite(source.height) && source.width > 0 && source.height > 0) {
-      const sx = dims.width / source.width;
-      const sy = dims.height / source.height;
-      if (Math.abs((dims.width - source.width) / source.width) > 0.01 || Math.abs((dims.height - source.height) / source.height) > 0.01) {
-        const panels = mapBoxes(out.panels, sx, sy, dims.width, dims.height);
-        const bubbles = mapBoxes(out.bubbles, sx, sy, dims.width, dims.height);
-        const sequence = mapBoxes(out.sequence, sx, sy, dims.width, dims.height);
-        out = { ...out, panels: panels.boxes, bubbles: bubbles.boxes, sequence: sequence.boxes };
-        if (out.panelPoints) out.panelPoints = mapPoints(out.panelPoints, sx, sy);
-        if (out.bubblePoints) out.bubblePoints = mapPoints(out.bubblePoints, sx, sy);
-        summary.scaled++;
-        // Count only visible boxes; sequence entries always mirror a panel/bubble box.
-        summary.clamped += panels.clampedCount + bubbles.clampedCount;
-      }
-      out.width = dims.width;
-      out.height = dims.height;
-    }
-    result[targetName] = out;
+    result[targetName] = transformPage(source, sourceName, matchType, targetDims, targetName, summary);
     matchedSources.add(sourceName);
     summary[matchType]++;
   };
 
-  for (const targetName of targetPages) {
-    if (byName.has(targetName)) {
-      attach(targetName, byName.get(targetName), 'exact');
-    } else if (byLower.has(targetName.toLowerCase())) {
-      attach(targetName, byLower.get(targetName.toLowerCase()), 'ci');
-    } else if (byBase.has(baseName(targetName)) && !matchedSources.has(byBase.get(baseName(targetName)))) {
-      attach(targetName, byBase.get(baseName(targetName)), 'basename');
-    } else {
-      unmatchedTargets.push(targetName);
-    }
-  }
+  matchNameBased(targetPages, byName, byLower, byBase, matchedSources, attach, unmatchedTargets);
+  matchPositional(sourceNames, matchedSources, unmatchedTargets, attach, result, summary);
 
-  // Positional leftovers, numeric order on both sides.
-  const leftoverSources = sourceNames.filter((name) => !matchedSources.has(name)).sort(numericCompare);
-  const sortedTargets = unmatchedTargets.slice().sort(numericCompare);
-  for (let i = 0; i < sortedTargets.length; i++) {
-    if (i < leftoverSources.length) {
-      attach(sortedTargets[i], leftoverSources[i], 'positional');
-    } else {
-      result[sortedTargets[i]] = null;
-      summary.emptyTarget++;
-    }
-  }
   summary.dropped = sourceNames.length - matchedSources.size;
 
   return { pages: result, summary };
