@@ -44,9 +44,11 @@ function clearDimensionCache() {
 
 // Dimensions for every page entry (null when unreadable), cached across requests.
 async function pageDimensions(cbzPath, names) {
+  if (names.length === 0) return new Map();
+
   let mtime = 0;
   try {
-    mtime = Math.floor(fs.statSync(cbzPath).mtimeMs);
+    mtime = Math.floor((await fs.promises.stat(cbzPath)).mtimeMs);
   } catch {}
   const resolved = path.resolve(cbzPath);
 
