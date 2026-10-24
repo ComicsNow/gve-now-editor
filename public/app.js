@@ -1035,6 +1035,7 @@
           up.type = "button";
           up.textContent = "\u25B2";
           up.title = "Move earlier";
+          up.setAttribute("aria-label", "Move earlier");
           up.addEventListener("click", (e) => {
             e.stopPropagation();
             if (onMove) onMove(id, -1);
@@ -1044,6 +1045,7 @@
           down.type = "button";
           down.textContent = "\u25BC";
           down.title = "Move later";
+          down.setAttribute("aria-label", "Move later");
           down.addEventListener("click", (e) => {
             e.stopPropagation();
             if (onMove) onMove(id, 1);
@@ -1549,6 +1551,7 @@
         input.className = "search-input";
         input.type = "search";
         input.placeholder = "Search series or file name\u2026";
+        input.setAttribute("aria-label", "Search series or file name");
         const button = document.createElement("button");
         button.type = "submit";
         button.textContent = "Search";
@@ -1678,6 +1681,7 @@
         fileInput.type = "file";
         fileInput.accept = ".json,application/json";
         fileInput.className = "import-file";
+        fileInput.setAttribute("aria-label", "Select JSON file to import");
         fileRow.appendChild(fileInput);
         const status = document.createElement("div");
         status.className = "import-status";
@@ -1749,6 +1753,7 @@
           input.className = "manual-input";
           input.type = "search";
           input.placeholder = "Choose a different comic\u2026";
+          input.setAttribute("aria-label", "Search comics to import");
           const button = document.createElement("button");
           button.type = "button";
           button.textContent = "Search";

@@ -70,9 +70,13 @@ describe('web/order-panel DOM', () => {
   it('reports row moves and does not select on move clicks', () => {
     const { el, onMove, onSelect } = setup();
     const second = el.querySelectorAll('.order-row')[1];
-    second.querySelector('.move-up').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const upBtn = second.querySelector('.move-up');
+    const downBtn = second.querySelector('.move-down');
+    expect(upBtn.getAttribute('aria-label')).toBe('Move earlier');
+    expect(downBtn.getAttribute('aria-label')).toBe('Move later');
+    upBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(onMove).toHaveBeenCalledWith('i0', -1);
-    second.querySelector('.move-down').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    downBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(onMove).toHaveBeenCalledWith('i0', 1);
     expect(onSelect).not.toHaveBeenCalled();
   });
