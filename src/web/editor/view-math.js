@@ -65,4 +65,4 @@ function resolveView(view, viewportWidth, viewportHeight, pageWidth, pageHeight)
   return { scale, offsetX, offsetY };
 }
 
-module.exports = { MIN_ZOOM, MAX_ZOOM, clampZoom, fitWidthScale, zoomAt, containScale, resolveView };
+module.exports = { clampZoom, fitWidthScale, zoomAt, containScale, resolveView };

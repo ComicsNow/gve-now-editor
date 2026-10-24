@@ -369,7 +369,7 @@
           layer.appendChild(div);
         });
       }
-      module.exports = { renderOverlay, HANDLE_DIRS };
+      module.exports = { renderOverlay };
     }
   });
 
@@ -494,7 +494,7 @@
         offsetY = scaledH <= viewportHeight ? (viewportHeight - scaledH) / 2 : Math.min(0, Math.max(viewportHeight - scaledH, offsetY));
         return { scale, offsetX, offsetY };
       }
-      module.exports = { MIN_ZOOM, MAX_ZOOM, clampZoom, fitWidthScale: fitWidthScale2, zoomAt, containScale, resolveView };
+      module.exports = { clampZoom, fitWidthScale: fitWidthScale2, zoomAt, containScale, resolveView };
     }
   });
 
@@ -905,7 +905,7 @@
         });
         el2.appendChild(del);
       }
-      module.exports = { renderInspector: renderInspector2, FIELD_INDEX };
+      module.exports = { renderInspector: renderInspector2 };
     }
   });
 

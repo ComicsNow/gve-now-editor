@@ -38,10 +38,6 @@ function canonicalType(store, id, mangaMode) {
 // In-memory cache for page dimensions keyed by (resolvedPath:mtime:entryName).
 const dimensionCache = new Map();
 
-function clearDimensionCache() {
-  dimensionCache.clear();
-}
-
 // Dimensions for every page entry (null when unreadable), cached across requests.
 async function pageDimensions(cbzPath, names) {
   let mtime = 0;
@@ -77,4 +73,4 @@ function appendMissing(base, extra) {
   return out;
 }
 
-module.exports = { mimeFor, loadComic, canonicalType, pageDimensions, appendMissing, listPages, clearDimensionCache };
+module.exports = { mimeFor, loadComic, canonicalType, pageDimensions, appendMissing, listPages };

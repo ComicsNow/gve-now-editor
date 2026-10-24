@@ -75,4 +75,4 @@ function createApp({ config, db, store, publicDir = DEFAULT_PUBLIC_DIR, configPa
   return app;
 }
 
-module.exports = { createApp, isAllowedHost };
+module.exports = { createApp };

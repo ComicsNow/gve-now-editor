@@ -78,4 +78,4 @@ function renderOverlay(layer, { page, order, selected = new Set(), onSelect, onE
   });
 }
 
-module.exports = { renderOverlay, HANDLE_DIRS };
+module.exports = { renderOverlay };

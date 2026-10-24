@@ -15,7 +15,7 @@ function cleanForSimilarity(input) {
 }
 
 // difflib.SequenceMatcher.find_longest_match (no junk elements).
-function findLongestMatch(a, b, alo, ahi, blo, bhi, b2j) {
+function findLongestMatch(a, alo, ahi, blo, bhi, b2j) {
   let besti = alo;
   let bestj = blo;
   let bestsize = 0;
@@ -53,7 +53,7 @@ function sequenceMatcherRatio(a, b) {
   let matched = 0;
   while (queue.length > 0) {
     const [alo, ahi, blo, bhi] = queue.pop();
-    const m = findLongestMatch(a, b, alo, ahi, blo, bhi, b2j);
+    const m = findLongestMatch(a, alo, ahi, blo, bhi, b2j);
     if (m.size > 0) {
       matched += m.size;
       if (alo < m.i && blo < m.j) queue.push([alo, m.i, blo, m.j]);

@@ -152,4 +152,4 @@ function getEntryBuffer(cbzPath, entryName, { yauzlTimeoutMs = 10000, unzipBin =
   );
 }
 
-module.exports = { listPages, getEntryBuffer, isImage, isPageEntry, isSafeEntry, escapeZipGlob };
+module.exports = { listPages, getEntryBuffer };
