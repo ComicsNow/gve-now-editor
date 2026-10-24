@@ -107,4 +107,13 @@ describe('integration: export -> import -> edit round trip', () => {
     expect(res.status).toBe(403);
     expect(res.body.error).toMatch(/untrusted or forbidden host/i);
   });
+
+  it('includes security headers and disables x-powered-by header', async () => {
+    const health = await api(h.baseUrl, '/api/health');
+    expect(health.status).toBe(200);
+    expect(health.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(health.headers.get('x-frame-options')).toBe('SAMEORIGIN');
+    expect(health.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
+    expect(health.headers.get('x-powered-by')).toBeNull();
+  });
 });
