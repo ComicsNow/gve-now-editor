@@ -90,6 +90,39 @@ describe('routes/settings', () => {
     expect(blank.status).toBe(400);
   });
 
+  it('PUT rejects path traversal in comicsNowRoot', async () => {
+    const { status, body } = await api(h.baseUrl, '/api/settings', {
+      method: 'PUT',
+      body: { comicsNowRoot: '/opt/comics-now/../../etc' }
+    });
+    expect(status).toBe(400);
+    expect(body.errors.join(' ')).toMatch(/path traversal/);
+  });
+
+  it('PUT rejects relative paths in comicsNowRoot', async () => {
+    const { status, body } = await api(h.baseUrl, '/api/settings', {
+      method: 'PUT',
+      body: { comicsNowRoot: 'opt/comics-now' }
+    });
+    expect(status).toBe(400);
+    expect(body.errors.join(' ')).toMatch(/absolute path/);
+  });
+
+  it('PUT rejects sensitive system directories in comicsNowRoot', async () => {
+    const { status, body } = await api(h.baseUrl, '/api/settings', {
+      method: 'PUT',
+      body: { comicsNowRoot: '/etc/passwd' }
+    });
+    expect(status).toBe(400);
+    expect(body.errors.join(' ')).toMatch(/sensitive system directories/);
+
+    const status2 = (await api(h.baseUrl, '/api/settings', {
+      method: 'PUT',
+      body: { comicsNowRoot: '/root/foo' }
+    })).status;
+    expect(status2).toBe(400);
+  });
+
   it('warns that COMICS_NOW_ROOT env overrides the saved file', async () => {
     const h2 = await startHarness({ env: ({ root }) => ({ COMICS_NOW_ROOT: root }) });
     try {
