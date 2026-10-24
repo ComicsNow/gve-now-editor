@@ -49,7 +49,16 @@ function createApp({ config, db, store, publicDir = DEFAULT_PUBLIC_DIR, configPa
     configPath || process.env.GVE_NOW_CONFIG || path.join(__dirname, '..', '..', 'config.json');
 
   const app = express();
+
+  // Security: Do not expose Express in X-Powered-By header
+  app.disable('x-powered-by');
+
   app.use((req, res, next) => {
+    // Security: Defense in depth headers (prevent MIME sniffing, framing, and referrer leaks)
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
     if (!isAllowedHost(req.headers.host, { config, env })) {
       return res.status(403).json({ error: `untrusted or forbidden host header: ${req.headers.host || 'none'}` });
     }
@@ -69,7 +78,8 @@ function createApp({ config, db, store, publicDir = DEFAULT_PUBLIC_DIR, configPa
   app.use((err, req, res, next) => {
     if (err && err.type === 'entity.parse.failed') return res.status(400).json({ error: 'invalid JSON body' });
     console.error('[gve-now]', err);
-    res.status(500).json({ error: err && err.message ? err.message : 'internal error' });
+    // Security: Fail securely without exposing error messages or stack/path traces to clients
+    res.status(500).json({ error: 'internal error' });
   });
 
   return app;
