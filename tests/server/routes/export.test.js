@@ -1,5 +1,6 @@
 const { startHarness } = require('../../helpers/app-harness');
 const { api } = require('../../helpers/api');
+const { contentDisposition } = require('../../../src/server/routes/exportRoute');
 
 const sidecar = {
   comicId: 'c1',
@@ -65,5 +66,29 @@ describe('routes/export', () => {
     expect(status).toBe(404);
     expect(String(body.error)).toMatch(/guided|sidecar/i);
     await h2.close();
+  });
+});
+
+describe('contentDisposition', () => {
+  it('returns simple attachment for ASCII filename', () => {
+    expect(contentDisposition('regular.json')).toBe('attachment; filename="regular.json"');
+  });
+
+  it('replaces quotes and backslashes with underscores', () => {
+    expect(contentDisposition('file"name\\test.json')).toBe('attachment; filename="file_name_test.json"');
+  });
+
+  it('encodes non-ASCII characters using RFC 5987', () => {
+    const filename = 'Ünïcode.json';
+    const result = contentDisposition(filename);
+    expect(result).toContain('filename="_n_code.json"');
+    expect(result).toContain(`filename*=UTF-8''${encodeURIComponent(filename)}`);
+  });
+
+  it('handles mixed non-ASCII and quotes/backslashes', () => {
+    const filename = 'Ünï"code\\.json';
+    const result = contentDisposition(filename);
+    expect(result).toContain('filename="_n__code_.json"');
+    expect(result).toContain(`filename*=UTF-8''${encodeURIComponent(filename)}`);
   });
 });
