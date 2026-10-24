@@ -5,7 +5,6 @@ const path = require('path');
 const http = require('http');
 
 const { loadConfig } = require('../../src/server/config');
-const { openDatabase } = require('../../src/server/db');
 const { createSidecarStore } = require('../../src/server/sidecar-store');
 const { createApp } = require('../../src/server/app');
 const { createTestDb, insertComic, insertPref } = require('./test-db');
@@ -75,4 +74,4 @@ async function startHarness({ comics = [], prefs = [], sidecars = {}, cbzPages =
   };
 }
 
-module.exports = { startHarness, PNG_1PX, JPG_1PX };
+module.exports = { startHarness, PNG_1PX };

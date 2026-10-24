@@ -4,8 +4,7 @@ describe('web/undo', () => {
   it('undo returns the previous snapshot and pushes the current onto redo', () => {
     const stack = createUndoStack();
     const s0 = { page: 'p1', items: [], order: [] };
-    const s1 = { page: 'p1', items: [{ id: 'a' }], order: ['a'] };
-    stack.push(s0); // mutation took us from s0 to s1
+    stack.push(s0);
     const current = { page: 'p1', items: [{ id: 'a' }, { id: 'b' }], order: ['a', 'b'] };
 
     expect(stack.canUndo()).toBe(true);

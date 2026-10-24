@@ -142,6 +142,5 @@ module.exports = {
   previewConfig,
   rehomeRoot,
   saveConfig,
-  validateConfig,
-  DEFAULTS
+  validateConfig
 };

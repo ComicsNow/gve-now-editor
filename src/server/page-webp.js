@@ -163,4 +163,4 @@ async function getPageImage({ cbzPath, entryName, cacheDir, readEntry, ffmpegBin
   return { buffer: source, contentType: null, source: 'original' };
 }
 
-module.exports = { webpCacheKey, isTranscodableEntry, transcodeToWebp, getPageImage };
+module.exports = { webpCacheKey, getPageImage };

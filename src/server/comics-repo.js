@@ -116,4 +116,4 @@ function resolveMangaMode(db, userId, comic, libraries) {
   return makeMangaModeResolver(db, userId, libraries)(comic);
 }
 
-module.exports = { parseMetadata, searchComics, countComics, getComic, loadPrefMaps, makeMangaModeResolver, resolveMangaMode };
+module.exports = { parseMetadata, searchComics, countComics, getComic, makeMangaModeResolver, resolveMangaMode };

@@ -56,4 +56,4 @@ function renderInspector(el, { item, badge, onBoxChange, onDelete } = {}) {
   el.appendChild(del);
 }
 
-module.exports = { renderInspector, FIELD_INDEX };
+module.exports = { renderInspector };
