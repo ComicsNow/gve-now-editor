@@ -19,10 +19,8 @@ function parsePagination(query) {
   return { limit, offset };
 }
 
-function createComicsRouter({ config, db, store }) {
-  const router = express.Router();
-
-  router.get('/', (req, res) => {
+function handleListComics({ config, db }) {
+  return (req, res) => {
     const { q = '', status = '' } = req.query;
     const paging = parsePagination(req.query);
     if (!paging) {
@@ -39,15 +37,19 @@ function createComicsRouter({ config, db, store }) {
       limit: paging.limit,
       offset: paging.offset
     });
-  });
+  };
+}
 
-  router.get('/:id', (req, res) => {
+function handleGetComic({ config, db }) {
+  return (req, res) => {
     const found = loadComic(db, config, req.params.id);
     if (!found) return res.status(404).json({ error: `comic not found: ${req.params.id}` });
     res.json({ comic: found.comic, mangaMode: found.mangaMode });
-  });
+  };
+}
 
-  router.get('/:id/pages', async (req, res, next) => {
+function handleGetComicPages({ config, db, store }) {
+  return async (req, res, next) => {
     try {
       const found = loadComic(db, config, req.params.id);
       if (!found) return res.status(404).json({ error: `comic not found: ${req.params.id}` });
@@ -69,9 +71,11 @@ function createComicsRouter({ config, db, store }) {
     } catch (err) {
       next(err);
     }
-  });
+  };
+}
 
-  router.get('/:id/page-image', async (req, res, next) => {
+function handleGetPageImage({ config, db }) {
+  return async (req, res, next) => {
     try {
       const found = loadComic(db, config, req.params.id);
       if (!found) return res.status(404).json({ error: `comic not found: ${req.params.id}` });
@@ -103,7 +107,16 @@ function createComicsRouter({ config, db, store }) {
     } catch (err) {
       next(err);
     }
-  });
+  };
+}
+
+function createComicsRouter({ config, db, store }) {
+  const router = express.Router();
+
+  router.get('/', handleListComics({ config, db }));
+  router.get('/:id', handleGetComic({ config, db }));
+  router.get('/:id/pages', handleGetComicPages({ config, db, store }));
+  router.get('/:id/page-image', handleGetPageImage({ config, db }));
 
   return router;
 }
