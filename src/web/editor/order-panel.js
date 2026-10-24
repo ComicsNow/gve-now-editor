@@ -56,6 +56,23 @@ function insertionIndexFromY(rows, y) {
   return index;
 }
 
+function getRowTops(list) {
+  return [...list.querySelectorAll('.order-row')].map((r) => {
+    const b = r.getBoundingClientRect();
+    return { top: b.top, height: b.height };
+  });
+}
+
+function paintDropSlot(list, index) {
+  list.querySelectorAll('.caret-slot').forEach((slot) => {
+    slot.classList.toggle('drop-slot', Number(slot.dataset.index) === index);
+  });
+}
+
+function clearDropSlots(list) {
+  list.querySelectorAll('.caret-slot.drop-slot').forEach((slot) => slot.classList.remove('drop-slot'));
+}
+
 // DOM rendering of the order list. `caret` is the insertion index for newly
 // drawn boxes (a gap between rows). Rows can be dragged to a new position
 // (reported via onDrop as the final index), and their badge clicked to type
@@ -72,23 +89,12 @@ function renderOrderPanel(el, { order = [], items = [], caret = null, onSelect, 
     let moved = false;
     let insertion = -1;
 
-    const rowTops = () =>
-      [...list.querySelectorAll('.order-row')].map((r) => {
-        const b = r.getBoundingClientRect();
-        return { top: b.top, height: b.height };
-      });
-    const paintDrop = (index) => {
-      insertion = index;
-      list.querySelectorAll('.caret-slot').forEach((slot) => {
-        slot.classList.toggle('drop-slot', Number(slot.dataset.index) === index);
-      });
-    };
     const cleanup = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerCancel);
       row.classList.remove('dragging');
-      list.querySelectorAll('.caret-slot.drop-slot').forEach((slot) => slot.classList.remove('drop-slot'));
+      clearDropSlots(list);
     };
     const onPointerMove = (ev) => {
       if (!moved) {
@@ -96,7 +102,8 @@ function renderOrderPanel(el, { order = [], items = [], caret = null, onSelect, 
         moved = true;
         row.classList.add('dragging');
       }
-      paintDrop(insertionIndexFromY(rowTops(), ev.clientY));
+      insertion = insertionIndexFromY(getRowTops(list), ev.clientY);
+      paintDropSlot(list, insertion);
     };
     const onPointerUp = () => {
       cleanup();
