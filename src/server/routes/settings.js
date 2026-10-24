@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const path = require('path');
 const { previewConfig, readConfigFile, rehomeRoot, resolveConfig, saveConfig, validateConfig } = require('../config');
 
 const RESTART_MESSAGE = 'Restart GVE Now! to apply (sudo systemctl restart gve-now)';
@@ -44,6 +45,39 @@ function createSettingsRouter({ config, configPath, env = process.env }) {
       });
     }
     const comicsNowRoot = raw.trim();
+
+    if (comicsNowRoot.includes('..')) {
+      return res.status(400).json({
+        ok: false,
+        errors: ['comicsNowRoot must not contain path traversal characters']
+      });
+    }
+    if (!path.isAbsolute(comicsNowRoot)) {
+      return res.status(400).json({
+        ok: false,
+        errors: ['comicsNowRoot must be an absolute path']
+      });
+    }
+
+    const isWin = process.platform === 'win32';
+    const restricted = isWin
+      ? ['c:\\windows', 'c:\\program files', 'c:\\program files (x86)', 'c:\\programdata']
+      : ['/etc', '/root', '/boot', '/sys', '/dev', '/proc', '/var', '/bin', '/sbin', '/usr'];
+    const resolved = path.resolve(comicsNowRoot).toLowerCase();
+    const blocked = restricted.some((p) => {
+      const lowerP = p.toLowerCase();
+      return (
+        resolved === lowerP ||
+        resolved.startsWith(lowerP + path.sep) ||
+        (!isWin && resolved.startsWith(lowerP + '/'))
+      );
+    });
+    if (blocked) {
+      return res.status(400).json({
+        ok: false,
+        errors: ['comicsNowRoot must not point to sensitive system directories']
+      });
+    }
 
     let candidate;
     let saveOptions = {};
