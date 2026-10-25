@@ -157,6 +157,8 @@ function renderOrderPanel(el, { order = [], items = [], caret = null, onSelect, 
     up.type = 'button';
     up.textContent = '▲';
     up.title = 'Move earlier';
+    up.setAttribute('aria-label', 'Move earlier in reading order');
+    up.disabled = index === 0;
     up.addEventListener('click', (e) => {
       e.stopPropagation();
       if (onMove) onMove(id, -1);
@@ -167,6 +169,8 @@ function renderOrderPanel(el, { order = [], items = [], caret = null, onSelect, 
     down.type = 'button';
     down.textContent = '▼';
     down.title = 'Move later';
+    down.setAttribute('aria-label', 'Move later in reading order');
+    down.disabled = index === order.length - 1;
     down.addEventListener('click', (e) => {
       e.stopPropagation();
       if (onMove) onMove(id, 1);

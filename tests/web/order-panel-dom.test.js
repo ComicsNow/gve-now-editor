@@ -72,9 +72,29 @@ describe('web/order-panel DOM', () => {
     const second = el.querySelectorAll('.order-row')[1];
     second.querySelector('.move-up').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(onMove).toHaveBeenCalledWith('i0', -1);
-    second.querySelector('.move-down').dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(onMove).toHaveBeenCalledWith('i0', 1);
+    const first = el.querySelectorAll('.order-row')[0];
+    first.querySelector('.move-down').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onMove).toHaveBeenCalledWith('i1', 1);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('sets accessibility aria-labels and disables move buttons at boundaries', () => {
+    const { el } = setup();
+    const rows = el.querySelectorAll('.order-row');
+    const firstUp = rows[0].querySelector('.move-up');
+    const firstDown = rows[0].querySelector('.move-down');
+    const secondUp = rows[1].querySelector('.move-up');
+    const secondDown = rows[1].querySelector('.move-down');
+
+    expect(firstUp.getAttribute('aria-label')).toBe('Move earlier in reading order');
+    expect(firstDown.getAttribute('aria-label')).toBe('Move later in reading order');
+    expect(secondUp.getAttribute('aria-label')).toBe('Move earlier in reading order');
+    expect(secondDown.getAttribute('aria-label')).toBe('Move later in reading order');
+
+    expect(firstUp.disabled).toBe(true);
+    expect(firstDown.disabled).toBe(false);
+    expect(secondUp.disabled).toBe(false);
+    expect(secondDown.disabled).toBe(true);
   });
 
   it('selects a row on click', () => {

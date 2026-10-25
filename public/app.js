@@ -1035,6 +1035,8 @@
           up.type = "button";
           up.textContent = "\u25B2";
           up.title = "Move earlier";
+          up.setAttribute("aria-label", "Move earlier in reading order");
+          up.disabled = index === 0;
           up.addEventListener("click", (e) => {
             e.stopPropagation();
             if (onMove) onMove(id, -1);
@@ -1044,6 +1046,8 @@
           down.type = "button";
           down.textContent = "\u25BC";
           down.title = "Move later";
+          down.setAttribute("aria-label", "Move later in reading order");
+          down.disabled = index === order.length - 1;
           down.addEventListener("click", (e) => {
             e.stopPropagation();
             if (onMove) onMove(id, 1);
