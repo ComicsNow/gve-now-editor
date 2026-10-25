@@ -157,32 +157,69 @@ function createStage(container, handlers = {}) {
     renderFreeDraft();
   });
 
-  function onWindowMove(e) {
-    if (!drag) return;
-    const p = getNative(e.clientX, e.clientY);
+  function handleMoveDrag(p) {
+    const box = translateBox(drag.origBox, p.x - drag.start.x, p.y - drag.start.y, page).map(Math.round);
+    if (handlers.onUpdateBox) handlers.onUpdateBox(drag.id, box);
+  }
 
-    if (drag.kind === 'move') {
-      const box = translateBox(drag.origBox, p.x - drag.start.x, p.y - drag.start.y, page).map(Math.round);
-      if (handlers.onUpdateBox) handlers.onUpdateBox(drag.id, box);
-    } else if (drag.kind === 'resize') {
-      const box = resizeBox(drag.origBox, drag.handle, p.x - drag.start.x, p.y - drag.start.y, page).map(Math.round);
-      if (handlers.onUpdateBox) handlers.onUpdateBox(drag.id, box);
-    } else if (drag.kind === 'pan') {
-      if (Math.abs(e.clientX - drag.startClientX) > PAN_CLICK_SLOP || Math.abs(e.clientY - drag.startClientY) > PAN_CLICK_SLOP) {
-        drag.moved = true;
-      }
-      view = {
-        scale: view.scale,
-        offsetX: drag.origView.offsetX + (e.clientX - drag.startClientX),
-        offsetY: drag.origView.offsetY + (e.clientY - drag.startClientY)
-      };
-      applyView();
-    } else if (drag.kind === 'marquee' && drag.ghost) {
+  function handleResizeDrag(p) {
+    const box = resizeBox(drag.origBox, drag.handle, p.x - drag.start.x, p.y - drag.start.y, page).map(Math.round);
+    if (handlers.onUpdateBox) handlers.onUpdateBox(drag.id, box);
+  }
+
+  function handlePanDrag(e) {
+    if (Math.abs(e.clientX - drag.startClientX) > PAN_CLICK_SLOP || Math.abs(e.clientY - drag.startClientY) > PAN_CLICK_SLOP) {
+      drag.moved = true;
+    }
+    view = {
+      scale: view.scale,
+      offsetX: drag.origView.offsetX + (e.clientX - drag.startClientX),
+      offsetY: drag.origView.offsetY + (e.clientY - drag.startClientY)
+    };
+    applyView();
+  }
+
+  function handleMarqueeDrag(e) {
+    if (drag.ghost) {
       const rect = viewport.getBoundingClientRect();
       drag.ghost.style.left = `${Math.min(drag.startClientX, e.clientX) - rect.left}px`;
       drag.ghost.style.top = `${Math.min(drag.startClientY, e.clientY) - rect.top}px`;
       drag.ghost.style.width = `${Math.abs(e.clientX - drag.startClientX)}px`;
       drag.ghost.style.height = `${Math.abs(e.clientY - drag.startClientY)}px`;
+    }
+  }
+
+  function onWindowMove(e) {
+    if (!drag) return;
+    const p = getNative(e.clientX, e.clientY);
+
+    if (drag.kind === 'move') {
+      handleMoveDrag(p);
+    } else if (drag.kind === 'resize') {
+      handleResizeDrag(p);
+    } else if (drag.kind === 'pan') {
+      handlePanDrag(e);
+    } else if (drag.kind === 'marquee') {
+      handleMarqueeDrag(e);
+    }
+  }
+
+  function finishMarqueeDrag(e, finished) {
+    if (finished.ghost) finished.ghost.remove();
+    const p = getNative(e.clientX, e.clientY);
+    const box = boxFromPoints(finished.start.x, finished.start.y, p.x, p.y).map(Math.round);
+    box[0] = Math.max(0, Math.min(box[0], page.width));
+    box[1] = Math.max(0, Math.min(box[1], page.height));
+    box[2] = Math.max(0, Math.min(box[2], page.width - box[0]));
+    box[3] = Math.max(0, Math.min(box[3], page.height - box[1]));
+    if (box[2] >= MIN_BOX_SIZE && box[3] >= MIN_BOX_SIZE && handlers.onAdd) {
+      handlers.onAdd(finished.kindOf, box);
+    }
+  }
+
+  function finishPanDrag(finished) {
+    if (!finished.moved && handlers.onSelect) {
+      handlers.onSelect(null, { additive: false });
     }
   }
 
@@ -194,18 +231,9 @@ function createStage(container, handlers = {}) {
     window.removeEventListener('pointerup', onWindowUp);
 
     if (finished.kind === 'marquee') {
-      if (finished.ghost) finished.ghost.remove();
-      const p = getNative(e.clientX, e.clientY);
-      const box = boxFromPoints(finished.start.x, finished.start.y, p.x, p.y).map(Math.round);
-      box[0] = Math.max(0, Math.min(box[0], page.width));
-      box[1] = Math.max(0, Math.min(box[1], page.height));
-      box[2] = Math.max(0, Math.min(box[2], page.width - box[0]));
-      box[3] = Math.max(0, Math.min(box[3], page.height - box[1]));
-      if (box[2] >= MIN_BOX_SIZE && box[3] >= MIN_BOX_SIZE && handlers.onAdd) {
-        handlers.onAdd(finished.kindOf, box);
-      }
-    } else if (finished.kind === 'pan' && !finished.moved && handlers.onSelect) {
-      handlers.onSelect(null, { additive: false });
+      finishMarqueeDrag(e, finished);
+    } else if (finished.kind === 'pan') {
+      finishPanDrag(finished);
     }
   }
 
