@@ -369,7 +369,7 @@
           layer.appendChild(div);
         });
       }
-      module.exports = { renderOverlay, HANDLE_DIRS };
+      module.exports = { renderOverlay };
     }
   });
 
@@ -905,7 +905,7 @@
         });
         el2.appendChild(del);
       }
-      module.exports = { renderInspector: renderInspector2, FIELD_INDEX };
+      module.exports = { renderInspector: renderInspector2 };
     }
   });
 
