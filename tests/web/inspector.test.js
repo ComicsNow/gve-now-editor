@@ -13,8 +13,12 @@ describe('web/inspector', () => {
     });
     expect(el.textContent).toContain('bubble');
     expect(el.textContent).toContain('3');
+    const expectedLabels = { x: 'X position', y: 'Y position', w: 'Width', h: 'Height' };
     for (const [field, value] of [['x', '10'], ['y', '20'], ['w', '30'], ['h', '40']]) {
-      expect(el.querySelector(`[data-field="${field}"]`).value).toBe(value);
+      const input = el.querySelector(`[data-field="${field}"]`);
+      expect(input.value).toBe(value);
+      expect(input.getAttribute('aria-label')).toBe(expectedLabels[field]);
+      expect(input.getAttribute('title')).toBe(expectedLabels[field]);
     }
   });
 

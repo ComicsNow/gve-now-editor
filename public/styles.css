@@ -37,6 +37,13 @@ button:hover:not(:disabled) { background: #262b36; }
 button:disabled { opacity: 0.4; cursor: default; }
 button.active { border-color: var(--pink); color: var(--pink); }
 
+button:focus-visible,
+input:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+}
+
 input[type="search"], input[type="number"], input[type="file"], input[type="text"] {
   background: var(--panel-2);
   color: var(--text);

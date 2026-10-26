@@ -1,0 +1,3 @@
+## 2025-05-18 - Visible Focus Rings and Custom Control Keyboard Affordances in Dark UI Editors
+**Learning:** Dark-themed web applications like GVE Now! often lack visible default focus rings, making keyboard navigation difficult for users. Custom inline controls (like reading order badges) rendered as `<span>` tags need explicit `role="button"`, `tabindex="0"`, `aria-label`, and keyboard trigger handlers (`Enter`/`Space`) alongside custom `:focus-visible` CSS matching theme design tokens (`var(--pink)`).
+**Action:** Always check custom interactive elements for `role="button"` and `tabindex="0"`, and ensure `:focus-visible` uses high-contrast design tokens across controls.

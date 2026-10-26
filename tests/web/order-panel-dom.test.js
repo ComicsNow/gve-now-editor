@@ -166,10 +166,14 @@ describe('web/order-panel DOM', () => {
   });
 
   describe('number editing', () => {
-    it('opens an editor on the badge and reports the typed position', () => {
+    it('renders badge with accessible button attributes and opens editor on click or Enter key', () => {
       const { el, onSetNumber, onSelect } = setup();
       const badge = el.querySelectorAll('.order-row')[1].querySelector('.badge'); // i0, number 2
-      badge.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(badge.getAttribute('role')).toBe('button');
+      expect(badge.getAttribute('tabindex')).toBe('0');
+      expect(badge.getAttribute('aria-label')).toBe('Set position for panel #2');
+
+      badge.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       expect(onSelect).not.toHaveBeenCalled();
       const input = badge.querySelector('.badge-input');
       expect(input).toBeTruthy();
