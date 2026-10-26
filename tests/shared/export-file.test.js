@@ -88,6 +88,12 @@ describe('shared/export-file', () => {
       expect(parseExportFile({ ...valid, formatVersion: '1' }).error).toMatch(/formatVersion/i);
       expect(parseExportFile({ ...valid, formatVersion: {} }).ok).toBe(false);
       expect(parseExportFile({ ...valid, formatVersion: {} }).error).toMatch(/formatVersion/i);
+      expect(parseExportFile({ ...valid, formatVersion: undefined }).ok).toBe(false);
+      expect(parseExportFile({ ...valid, formatVersion: undefined }).error).toMatch(/formatVersion/i);
+      expect(parseExportFile({ ...valid, formatVersion: null }).ok).toBe(false);
+      expect(parseExportFile({ ...valid, formatVersion: null }).error).toMatch(/formatVersion/i);
+      expect(parseExportFile({ ...valid, formatVersion: [] }).ok).toBe(false);
+      expect(parseExportFile({ ...valid, formatVersion: [] }).error).toMatch(/formatVersion/i);
       expect(parseExportFile({ ...valid, type: 'eastern' }).ok).toBe(false);
       expect(parseExportFile({ ...valid, type: 'eastern' }).error).toMatch(/type/i);
       expect(parseExportFile({ ...valid, pages: null }).ok).toBe(false);
