@@ -89,4 +89,18 @@ describe('contentDisposition', () => {
       'attachment; filename="__.cbz"; filename*=UTF-8\'\'%E6%BC%AB%E7%94%BB.cbz'
     );
   });
+
+  it('handles characters requiring URI encoding like % and \'', () => {
+    expect(contentDisposition('100% \'free\'.cbz')).toBe(
+      'attachment; filename="100% \'free\'.cbz"'
+    );
+    expect(contentDisposition('Ünïcode 100% \'free\'.cbz')).toBe(
+      'attachment; filename="_n_code 100% \'free\'.cbz"; filename*=UTF-8\'\'%C3%9Cn%C3%AFcode%20100%25%20\'free\'.cbz'
+    );
+  });
+
+  it('handles edge cases like empty strings and strings with only spaces', () => {
+    expect(contentDisposition('')).toBe('attachment; filename=""');
+    expect(contentDisposition('   ')).toBe('attachment; filename="   "');
+  });
 });
