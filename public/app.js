@@ -972,6 +972,25 @@
         }
         return index;
       }
+      function getRowTops(list) {
+        return [...list.querySelectorAll(".order-row")].map((r) => {
+          const b = r.getBoundingClientRect();
+          return { top: b.top, height: b.height };
+        });
+      }
+      function paintDropSlot(list, index) {
+        list.querySelectorAll(".caret-slot").forEach((slot) => {
+          slot.classList.toggle("drop-slot", Number(slot.dataset.index) === index);
+        });
+        return index;
+      }
+      function cleanupDropState(row, list, { onPointerMove, onPointerUp, onPointerCancel }) {
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+        window.removeEventListener("pointercancel", onPointerCancel);
+        row.classList.remove("dragging");
+        list.querySelectorAll(".caret-slot.drop-slot").forEach((slot) => slot.classList.remove("drop-slot"));
+      }
       function renderOrderPanel2(el2, { order = [], items = [], caret = null, onSelect, onMove, onSetCaret, onDrop, onSetNumber } = {}) {
         el2.textContent = "";
         const itemsById = new Map(items.map((i) => [i.id, i]));
@@ -981,40 +1000,23 @@
         function beginRowDrag(row, id, fromIndex, startClientX, startClientY) {
           let moved = false;
           let insertion = -1;
-          const rowTops = () => [...list.querySelectorAll(".order-row")].map((r) => {
-            const b = r.getBoundingClientRect();
-            return { top: b.top, height: b.height };
-          });
-          const paintDrop = (index) => {
-            insertion = index;
-            list.querySelectorAll(".caret-slot").forEach((slot) => {
-              slot.classList.toggle("drop-slot", Number(slot.dataset.index) === index);
-            });
-          };
-          const cleanup = () => {
-            window.removeEventListener("pointermove", onPointerMove);
-            window.removeEventListener("pointerup", onPointerUp);
-            window.removeEventListener("pointercancel", onPointerCancel);
-            row.classList.remove("dragging");
-            list.querySelectorAll(".caret-slot.drop-slot").forEach((slot) => slot.classList.remove("drop-slot"));
-          };
           const onPointerMove = (ev) => {
             if (!moved) {
               if (Math.abs(ev.clientX - startClientX) <= DRAG_SLOP && Math.abs(ev.clientY - startClientY) <= DRAG_SLOP) return;
               moved = true;
               row.classList.add("dragging");
             }
-            paintDrop(insertionIndexFromY(rowTops(), ev.clientY));
+            insertion = paintDropSlot(list, insertionIndexFromY(getRowTops(list), ev.clientY));
           };
           const onPointerUp = () => {
-            cleanup();
+            cleanupDropState(row, list, { onPointerMove, onPointerUp, onPointerCancel });
             if (!moved || insertion < 0) return;
             const toIndex = dropIndex(fromIndex, insertion);
             if (toIndex === fromIndex) return;
             suppressNextRowClick = true;
             if (onDrop) onDrop(id, toIndex);
           };
-          const onPointerCancel = () => cleanup();
+          const onPointerCancel = () => cleanupDropState(row, list, { onPointerMove, onPointerUp, onPointerCancel });
           window.addEventListener("pointermove", onPointerMove);
           window.addEventListener("pointerup", onPointerUp);
           window.addEventListener("pointercancel", onPointerCancel);
