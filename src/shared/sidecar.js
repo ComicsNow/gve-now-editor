@@ -37,7 +37,7 @@ function classifyMangaChild(box, boxes) {
   return boxes.some((other) => other !== box && intersectionOverArea(box, other) >= CHILD_IOA);
 }
 
-// Match sequence boxes against items by exact box equality (first unused match wins).
+// Match sequence boxes against items by exact box equality (first unassigned match wins).
 function matchSequence(items, seqBoxes) {
   const matched = new Set();
   const seqPos = new Map();
