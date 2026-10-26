@@ -9,15 +9,14 @@ function buildCheckReport({ config, db }) {
   let ok = true;
   let comics = 0;
   let guidedCompleted = 0;
-  const dbIds = new Set();
-  const completedIds = new Set();
+  let dbIds = new Set();
+  let completedIds = new Set();
   try {
-    const rows = db.prepare(`SELECT id, guidedViewStatus FROM comics`).all();
-    comics = rows.length;
-    for (const row of rows) {
-      dbIds.add(row.id);
-      if (row.guidedViewStatus === 'completed') completedIds.add(row.id);
-    }
+    const ids = db.prepare(`SELECT id FROM comics`).pluck().all();
+    comics = ids.length;
+    dbIds = new Set(ids);
+    const completed = db.prepare(`SELECT id FROM comics WHERE guidedViewStatus = 'completed'`).pluck().all();
+    completedIds = new Set(completed);
     guidedCompleted = completedIds.size;
   } catch (err) {
     ok = false;
