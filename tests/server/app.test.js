@@ -1,6 +1,8 @@
 'use strict';
 
+const request = require('supertest');
 const { isAllowedHost } = require('../../src/server/app');
+const { startHarness } = require('../helpers/app-harness');
 
 describe('isAllowedHost', () => {
   describe('Invalid inputs', () => {
@@ -112,5 +114,66 @@ describe('isAllowedHost', () => {
       expect(isAllowedHost('[fe80::1ff:fe23:4567:890a]', options)).toBe(false);
       expect(isAllowedHost('raspberrypi.local', options)).toBe(false);
     });
+  });
+});
+
+describe('createApp', () => {
+  let harness;
+
+  beforeAll(async () => {
+    harness = await startHarness();
+  });
+
+  afterAll(async () => {
+    await harness.close();
+  });
+
+  test('adds security headers', async () => {
+    const res = await request(harness.server).get('/api/health');
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-frame-options']).toBe('SAMEORIGIN');
+    expect(res.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+    expect(res.headers['x-powered-by']).toBeUndefined();
+  });
+
+  test('rejects disallowed hosts', async () => {
+    const res = await request(harness.server)
+      .get('/api/health')
+      .set('Host', 'malicious.com');
+
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({
+      error: 'untrusted or forbidden host header: malicious.com'
+    });
+  });
+
+  test('handles invalid JSON body', async () => {
+    const res = await request(harness.server)
+      .post('/api/import/score')
+      .set('Content-Type', 'application/json')
+      .send('{ invalid json');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'invalid JSON body' });
+  });
+
+  test('handles internal errors securely', async () => {
+    // Force an error inside a route by mocking a db call
+    const prepareSpy = jest.spyOn(harness.db, 'prepare').mockImplementationOnce(() => {
+      throw new Error('Database exploded');
+    });
+
+    // We need to restore console.error temporarily or suppress it so we don't pollute test output.
+    // The app handles errors by logging them to console.error and returning a 500.
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const res = await request(harness.server).get('/api/health');
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'internal error' });
+    } finally {
+      prepareSpy.mockRestore();
+      consoleSpy.mockRestore();
+    }
   });
 });
