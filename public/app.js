@@ -54,7 +54,7 @@
         scoreAgainst: (file, comicId) => jsonPost("/api/import/score-against", { file, comicId }),
         applyImport: (file, comicId, mode) => jsonPost("/api/import/apply", { file, comicId, mode })
       };
-      module.exports = { api: api2 };
+      module.exports = { api: api2, request, jsonPost, jsonPut };
     }
   });
 
