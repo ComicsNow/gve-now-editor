@@ -1177,13 +1177,27 @@
       function westernGeometryOrder(sortedPanels, sortedBubbles) {
         const out = [];
         const assigned = /* @__PURE__ */ new Set();
-        for (const panel of sortedPanels) {
-          out.push({ kind: "panel", box: panel });
-          for (const bubble of sortedBubbles) {
-            if (assigned.has(bubble)) continue;
+        const panelBubbles = /* @__PURE__ */ new Map();
+        for (const bubble of sortedBubbles) {
+          for (const panel of sortedPanels) {
             if (isBubbleInPanel(bubble, panel) || intersectionOverArea(bubble, panel) >= WESTERN_BUBBLE_IOA) {
               assigned.add(bubble);
-              out.push({ kind: "bubble", box: bubble });
+              let list = panelBubbles.get(panel);
+              if (!list) {
+                list = [];
+                panelBubbles.set(panel, list);
+              }
+              list.push(bubble);
+              break;
+            }
+          }
+        }
+        for (const panel of sortedPanels) {
+          out.push({ kind: "panel", box: panel });
+          const bubbles = panelBubbles.get(panel);
+          if (bubbles) {
+            for (let i = 0; i < bubbles.length; i++) {
+              out.push({ kind: "bubble", box: bubbles[i] });
             }
           }
         }
