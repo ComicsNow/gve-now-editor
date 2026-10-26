@@ -1377,6 +1377,58 @@
         if (appended.length > 0) warnings.push("appended-items");
         return entries.concat(appended);
       }
+      function parseRawItems(rawBoxes, rawPoints) {
+        const boxes = [];
+        const points = [];
+        for (let i = 0; i < rawBoxes.length; i++) {
+          const box = normalizeBox(rawBoxes[i]);
+          if (box) {
+            boxes.push(box);
+            points.push(normalizePoints(rawPoints[i]));
+          }
+        }
+        return { boxes, points };
+      }
+      function normalizeMangaPage(page, seqBoxes, push, items, warnings) {
+        const rawPanels = Array.isArray(page.panels) ? page.panels : [];
+        const rawBubbles = Array.isArray(page.bubbles) ? page.bubbles : [];
+        const rawPanelPoints = Array.isArray(page.panelPoints) ? page.panelPoints : [];
+        const rawBubblePoints = Array.isArray(page.bubblePoints) ? page.bubblePoints : [];
+        const parsedPanels = parseRawItems(rawPanels, rawPanelPoints);
+        const parsedBubbles = parseRawItems(rawBubbles, rawBubblePoints);
+        const seqKeys = new Set(seqBoxes.map(boxKey2));
+        const editorWritten = parsedBubbles.boxes.length > 0 && parsedBubbles.boxes.every((b) => seqKeys.has(boxKey2(b)));
+        if (editorWritten) {
+          for (let i = 0; i < parsedPanels.boxes.length; i++) push("panel", parsedPanels.boxes[i], parsedPanels.points[i]);
+          for (let i = 0; i < parsedBubbles.boxes.length; i++) push("bubble", parsedBubbles.boxes[i], parsedBubbles.points[i]);
+        } else {
+          for (let i = 0; i < parsedPanels.boxes.length; i++) {
+            const kind = classifyMangaChild(parsedPanels.boxes[i], parsedPanels.boxes) ? "bubble" : "panel";
+            push(kind, parsedPanels.boxes[i], parsedPanels.points[i]);
+          }
+          for (let i = 0; i < parsedBubbles.boxes.length; i++) push("bubble", parsedBubbles.boxes[i], parsedBubbles.points[i]);
+        }
+        return { items, order: mangaDisplayOrder(items, seqBoxes, warnings), warnings };
+      }
+      function normalizeWesternPage(page, seqBoxes, push, items, warnings) {
+        const rawPanels = Array.isArray(page.panels) ? page.panels : [];
+        const rawBubbles = Array.isArray(page.bubbles) ? page.bubbles : [];
+        const rawPanelPoints = Array.isArray(page.panelPoints) ? page.panelPoints : [];
+        const rawBubblePoints = Array.isArray(page.bubblePoints) ? page.bubblePoints : [];
+        for (let i = 0; i < rawPanels.length; i++) {
+          const box = normalizeBox(rawPanels[i]);
+          if (box) push("panel", box, normalizePoints(rawPanelPoints[i]));
+        }
+        for (let i = 0; i < rawBubbles.length; i++) {
+          const box = normalizeBox(rawBubbles[i]);
+          if (box) push("bubble", box, normalizePoints(rawBubblePoints[i]));
+        }
+        const bubblesOnly = items.filter((i) => i.kind === "bubble");
+        if (bubblesOnly.length > 0) {
+          return { items: bubblesOnly, order: westernBubbleOrder(bubblesOnly, seqBoxes, warnings), warnings };
+        }
+        return { items, order: westernDisplayOrder(items, seqBoxes, warnings), warnings };
+      }
       function normalizeSidecarPage(value, type) {
         const warnings = [];
         const items = [];
@@ -1394,54 +1446,11 @@
           return { items, order: items.map((i) => i.id), warnings };
         }
         const page = value && typeof value === "object" ? value : {};
-        const rawPanels = Array.isArray(page.panels) ? page.panels : [];
-        const rawBubbles = Array.isArray(page.bubbles) ? page.bubbles : [];
-        const rawPanelPoints = Array.isArray(page.panelPoints) ? page.panelPoints : [];
-        const rawBubblePoints = Array.isArray(page.bubblePoints) ? page.bubblePoints : [];
         const seqBoxes = (Array.isArray(page.sequence) ? page.sequence : []).map(normalizeBox).filter(Boolean);
         if (type === "manga") {
-          const boxes = [];
-          const boxPoints = [];
-          const bubbles = [];
-          const bubblePoints = [];
-          for (let i = 0; i < rawPanels.length; i++) {
-            const box = normalizeBox(rawPanels[i]);
-            if (box) {
-              boxes.push(box);
-              boxPoints.push(normalizePoints(rawPanelPoints[i]));
-            }
-          }
-          for (let i = 0; i < rawBubbles.length; i++) {
-            const box = normalizeBox(rawBubbles[i]);
-            if (box) {
-              bubbles.push(box);
-              bubblePoints.push(normalizePoints(rawBubblePoints[i]));
-            }
-          }
-          const seqKeys = new Set(seqBoxes.map(boxKey2));
-          const editorWritten = bubbles.length > 0 && bubbles.every((b) => seqKeys.has(boxKey2(b)));
-          if (editorWritten) {
-            for (let i = 0; i < boxes.length; i++) push("panel", boxes[i], boxPoints[i]);
-            for (let i = 0; i < bubbles.length; i++) push("bubble", bubbles[i], bubblePoints[i]);
-          } else {
-            for (let i = 0; i < boxes.length; i++) push(classifyMangaChild(boxes[i], boxes) ? "bubble" : "panel", boxes[i], boxPoints[i]);
-            for (let i = 0; i < bubbles.length; i++) push("bubble", bubbles[i], bubblePoints[i]);
-          }
-          return { items, order: mangaDisplayOrder(items, seqBoxes, warnings), warnings };
+          return normalizeMangaPage(page, seqBoxes, push, items, warnings);
         }
-        for (let i = 0; i < rawPanels.length; i++) {
-          const box = normalizeBox(rawPanels[i]);
-          if (box) push("panel", box, normalizePoints(rawPanelPoints[i]));
-        }
-        for (let i = 0; i < rawBubbles.length; i++) {
-          const box = normalizeBox(rawBubbles[i]);
-          if (box) push("bubble", box, normalizePoints(rawBubblePoints[i]));
-        }
-        const bubblesOnly = items.filter((i) => i.kind === "bubble");
-        if (bubblesOnly.length > 0) {
-          return { items: bubblesOnly, order: westernBubbleOrder(bubblesOnly, seqBoxes, warnings), warnings };
-        }
-        return { items, order: westernDisplayOrder(items, seqBoxes, warnings), warnings };
+        return normalizeWesternPage(page, seqBoxes, push, items, warnings);
       }
       function pruneWesternPanels2(page, type) {
         if (type !== "western") return page;
