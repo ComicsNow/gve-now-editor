@@ -117,6 +117,38 @@ function processPageScaling(sourceName, matchType, source, dims, summary) {
   return out;
 }
 
+function matchByNames(targetPages, maps, matchedSources) {
+  const matched = [];
+  const unmatchedTargets = [];
+  for (const targetName of targetPages) {
+    const match = findNameMatch(targetName, maps, matchedSources);
+    if (match) {
+      matchedSources.add(match.sourceName);
+      matched.push({ targetName, match });
+    } else {
+      unmatchedTargets.push(targetName);
+    }
+  }
+  return { matched, unmatchedTargets };
+}
+
+function matchPositionally(unmatchedTargets, sourceNames, matchedSources) {
+  const matched = [];
+  const emptyTargets = [];
+  const leftoverSources = sourceNames.filter((name) => !matchedSources.has(name)).sort(numericCompare);
+  const sortedTargets = unmatchedTargets.slice().sort(numericCompare);
+  for (let i = 0; i < sortedTargets.length; i++) {
+    if (i < leftoverSources.length) {
+      const sourceName = leftoverSources[i];
+      matchedSources.add(sourceName);
+      matched.push({ targetName: sortedTargets[i], match: { sourceName, matchType: 'positional' } });
+    } else {
+      emptyTargets.push(sortedTargets[i]);
+    }
+  }
+  return { matched, emptyTargets };
+}
+
 function mapPages({ pages, pageOrder, targetPages, targetDims = {} }) {
   const sourceNames = pageOrder && pageOrder.length > 0 ? pageOrder : Object.keys(pages);
   const maps = buildSourceMaps(sourceNames);
@@ -124,36 +156,22 @@ function mapPages({ pages, pageOrder, targetPages, targetDims = {} }) {
   const summary = { exact: 0, ci: 0, basename: 0, positional: 0, dropped: 0, emptyTarget: 0, scaled: 0, clamped: 0 };
   const matchedSources = new Set();
   const result = {};
-  const unmatchedTargets = [];
 
-  const attach = (targetName, sourceName, matchType) => {
-    const source = pages[sourceName];
+  const nameMatches = matchByNames(targetPages, maps, matchedSources);
+  const positionalMatches = matchPositionally(nameMatches.unmatchedTargets, sourceNames, matchedSources);
+
+  for (const { targetName, match } of [...nameMatches.matched, ...positionalMatches.matched]) {
+    const source = pages[match.sourceName];
     const dims = targetDims[targetName] || null;
-    result[targetName] = processPageScaling(sourceName, matchType, source, dims, summary);
-    matchedSources.add(sourceName);
-    summary[matchType]++;
-  };
-
-  for (const targetName of targetPages) {
-    const match = findNameMatch(targetName, maps, matchedSources);
-    if (match) {
-      attach(targetName, match.sourceName, match.matchType);
-    } else {
-      unmatchedTargets.push(targetName);
-    }
+    result[targetName] = processPageScaling(match.sourceName, match.matchType, source, dims, summary);
+    summary[match.matchType]++;
   }
 
-  // Positional leftovers, numeric order on both sides.
-  const leftoverSources = sourceNames.filter((name) => !matchedSources.has(name)).sort(numericCompare);
-  const sortedTargets = unmatchedTargets.slice().sort(numericCompare);
-  for (let i = 0; i < sortedTargets.length; i++) {
-    if (i < leftoverSources.length) {
-      attach(sortedTargets[i], leftoverSources[i], 'positional');
-    } else {
-      result[sortedTargets[i]] = null;
-      summary.emptyTarget++;
-    }
+  for (const targetName of positionalMatches.emptyTargets) {
+    result[targetName] = null;
+    summary.emptyTarget++;
   }
+
   summary.dropped = sourceNames.length - matchedSources.size;
 
   return { pages: result, summary };
