@@ -5,6 +5,7 @@
 // Delete/Backspace shortcut needs a keyboard).
 
 const FIELD_INDEX = { x: 0, y: 1, w: 2, h: 3 };
+const FIELD_LABELS = { x: 'X position', y: 'Y position', w: 'Width', h: 'Height' };
 
 function renderInspector(el, { item, badge, onBoxChange, onDelete } = {}) {
   el.textContent = '';
@@ -32,6 +33,8 @@ function renderInspector(el, { item, badge, onBoxChange, onDelete } = {}) {
     input.className = 'metric-input';
     input.dataset.field = field;
     input.value = String(item.box[FIELD_INDEX[field]]);
+    input.setAttribute('aria-label', FIELD_LABELS[field]);
+    input.title = FIELD_LABELS[field];
     input.addEventListener('change', () => {
       const raw = input.value.trim();
       const value = Number(raw);

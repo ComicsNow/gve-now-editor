@@ -138,10 +138,20 @@ function renderOrderPanel(el, { order = [], items = [], caret = null, onSelect, 
     badge.className = 'badge';
     badge.textContent = String(badges[id]);
     badge.title = 'Click to set position';
-    badge.addEventListener('click', (e) => {
+    badge.setAttribute('role', 'button');
+    badge.setAttribute('tabindex', '0');
+    badge.setAttribute('aria-label', `Set position for ${item.kind} #${badges[id]}`);
+    const triggerEdit = (e) => {
       e.stopPropagation();
       if (onSetNumber) {
         openBadgeEditor(badge, { value: badges[id], max: order.length, onCommit: (n) => onSetNumber(id, n) });
+      }
+    };
+    badge.addEventListener('click', triggerEdit);
+    badge.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        triggerEdit(e);
       }
     });
 

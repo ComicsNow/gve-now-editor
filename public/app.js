@@ -269,6 +269,7 @@
         input.type = "text";
         input.inputMode = "numeric";
         input.value = String(value);
+        input.setAttribute("aria-label", "Reading order position");
         badgeEl.textContent = "";
         badgeEl.appendChild(input);
         let done = false;
@@ -862,6 +863,7 @@
     "src/web/editor/inspector.js"(exports, module) {
       "use strict";
       var FIELD_INDEX = { x: 0, y: 1, w: 2, h: 3 };
+      var FIELD_LABELS = { x: "X position", y: "Y position", w: "Width", h: "Height" };
       function renderInspector2(el2, { item, badge, onBoxChange, onDelete } = {}) {
         el2.textContent = "";
         if (!item) {
@@ -884,6 +886,8 @@
           input.className = "metric-input";
           input.dataset.field = field;
           input.value = String(item.box[FIELD_INDEX[field]]);
+          input.setAttribute("aria-label", FIELD_LABELS[field]);
+          input.title = FIELD_LABELS[field];
           input.addEventListener("change", () => {
             const raw = input.value.trim();
             const value = Number(raw);
@@ -1019,10 +1023,20 @@
           badge.className = "badge";
           badge.textContent = String(badges[id]);
           badge.title = "Click to set position";
-          badge.addEventListener("click", (e) => {
+          badge.setAttribute("role", "button");
+          badge.setAttribute("tabindex", "0");
+          badge.setAttribute("aria-label", `Set position for ${item.kind} #${badges[id]}`);
+          const triggerEdit = (e) => {
             e.stopPropagation();
             if (onSetNumber) {
               openBadgeEditor(badge, { value: badges[id], max: order.length, onCommit: (n) => onSetNumber(id, n) });
+            }
+          };
+          badge.addEventListener("click", triggerEdit);
+          badge.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              triggerEdit(e);
             }
           });
           const chip = document.createElement("span");

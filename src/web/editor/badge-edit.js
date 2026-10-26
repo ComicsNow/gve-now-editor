@@ -13,6 +13,7 @@ function openBadgeEditor(badgeEl, { value, max = Infinity, onCommit } = {}) {
   input.type = 'text';
   input.inputMode = 'numeric';
   input.value = String(value);
+  input.setAttribute('aria-label', 'Reading order position');
   badgeEl.textContent = '';
   badgeEl.appendChild(input);
 

@@ -24,6 +24,7 @@ describe('web/badge-edit', () => {
     const { badge, input } = setup();
     expect(input.className).toBe('badge-input');
     expect(input.value).toBe('3');
+    expect(input.getAttribute('aria-label')).toBe('Reading order position');
     expect(badge.querySelector('.badge-input')).toBe(input);
     expect(document.activeElement).toBe(input);
   });
