@@ -19,16 +19,15 @@ const pageItemCache = new WeakMap();
 
 function getPageItem(page, id) {
   if (!page || !page.items) return null;
-  let cache = pageItemCache.get(page.items);
-  if (!cache || cache.length !== page.items.length) {
-    const map = new Map();
+  let map = pageItemCache.get(page.items);
+  if (!map) {
+    map = new Map();
     for (const item of page.items) {
       map.set(item.id, item);
     }
-    cache = { length: page.items.length, map };
-    pageItemCache.set(page.items, cache);
+    pageItemCache.set(page.items, map);
   }
-  return cache.map.get(id) || null;
+  return map.get(id) || null;
 }
 
 function createStore() {
@@ -102,7 +101,7 @@ function createStore() {
       const id = `n${++idCounter}`;
       const item = { id, kind, box: [...box] };
       if (points) item.points = copyPoints(points);
-      p.items.push(item);
+      p.items = [...p.items, item];
       const idx = atIndex < 0 || atIndex > p.order.length ? p.order.length : atIndex;
       p.order.splice(idx, 0, id);
       dirty = true;
