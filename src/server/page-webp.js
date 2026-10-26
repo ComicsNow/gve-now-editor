@@ -136,7 +136,7 @@ const inFlight = new Map();
 async function getPageImage({ cbzPath, entryName, cacheDir, readEntry, ffmpegBin, quality, timeoutMs }) {
   const transcodable = isTranscodableEntry(entryName);
   if (transcodable) {
-    const key = webpCacheKey(cbzPath, fs.statSync(cbzPath).mtimeMs, entryName);
+    const key = webpCacheKey(cbzPath, (await fs.promises.stat(cbzPath)).mtimeMs, entryName);
     const cached = readCacheFile(cacheDir, key);
     if (cached) return { buffer: cached, contentType: 'image/webp', source: 'webp-cache' };
 
