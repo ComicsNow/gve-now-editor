@@ -39,15 +39,16 @@ function classifyMangaChild(box, boxes) {
 
 // Match sequence boxes against items by exact box equality (first unused match wins).
 function matchSequence(items, seqBoxes) {
-  const matched = new Set();
+  const unmatched = [...items];
   const seqPos = new Map();
   let dropped = 0;
   for (let s = 0; s < seqBoxes.length; s++) {
     const seqBox = seqBoxes[s];
-    const match = items.find((i) => !matched.has(i.id) && boxesEqual(i.box, seqBox));
-    if (match) {
-      matched.add(match.id);
+    const matchIdx = unmatched.findIndex((i) => boxesEqual(i.box, seqBox));
+    if (matchIdx !== -1) {
+      const match = unmatched[matchIdx];
       seqPos.set(match.id, s);
+      unmatched.splice(matchIdx, 1);
     } else {
       dropped++;
     }
