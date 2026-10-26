@@ -4,6 +4,29 @@ const { startHarness } = require('../../helpers/app-harness');
 const { api } = require('../../helpers/api');
 
 describe('routes/settings', () => {
+  it('PUT rejects unconfigured GVE_NOW_ALLOWED_ROOTS', async () => {
+    const h2 = await startHarness({ env: ({ dir }) => ({ GVE_NOW_ALLOWED_ROOTS: '' }) });
+    try {
+      const { status, body } = await api(h2.baseUrl, '/api/settings', {
+        method: 'PUT',
+        body: { comicsNowRoot: h2.dir }
+      });
+      expect(status).toBe(403);
+      expect(body.errors.join(' ')).toMatch(/GVE_NOW_ALLOWED_ROOTS must be configured/);
+    } finally {
+      await h2.close();
+    }
+  });
+
+  it('PUT rejects comicsNowRoot outside of GVE_NOW_ALLOWED_ROOTS', async () => {
+    const { status, body } = await api(h.baseUrl, '/api/settings', {
+      method: 'PUT',
+      body: { comicsNowRoot: '/opt/not-allowed' }
+    });
+    expect(status).toBe(403);
+    expect(body.errors.join(' ')).toMatch(/comicsNowRoot must be within one of the GVE_NOW_ALLOWED_ROOTS/);
+  });
+
   let h;
   beforeAll(async () => {
     h = await startHarness({

@@ -79,6 +79,40 @@ function createSettingsRouter({ config, configPath, env = process.env }) {
       });
     }
 
+    if (!env.GVE_NOW_ALLOWED_ROOTS) {
+      return res.status(403).json({
+        ok: false,
+        errors: ['GVE_NOW_ALLOWED_ROOTS must be configured to change the comics-now root']
+      });
+    }
+
+    const checkResolved = isWin ? resolved : path.resolve(comicsNowRoot);
+    const allowedRoots = env.GVE_NOW_ALLOWED_ROOTS.split(',')
+      .map(p => p.trim())
+      .filter(Boolean)
+      .map(p => {
+        const res = path.resolve(p);
+        return isWin ? res.toLowerCase() : res;
+      });
+
+    const isAllowed = allowedRoots.some(allowed => {
+      if (checkResolved === allowed) return true;
+      const prefix = allowed.endsWith(path.sep) ? allowed : allowed + path.sep;
+      if (checkResolved.startsWith(prefix)) return true;
+      if (!isWin) {
+        const altPrefix = allowed.endsWith('/') ? allowed : allowed + '/';
+        if (checkResolved.startsWith(altPrefix)) return true;
+      }
+      return false;
+    });
+
+    if (!isAllowed) {
+      return res.status(403).json({
+        ok: false,
+        errors: ['comicsNowRoot must be within one of the GVE_NOW_ALLOWED_ROOTS']
+      });
+    }
+
     let candidate;
     let saveOptions = {};
     let droppedKeys = [];
