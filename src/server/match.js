@@ -71,4 +71,4 @@ function rankCandidates(exportComic, candidates, { limit = 5, minSeries = MIN_SE
     .slice(0, limit);
 }
 
-module.exports = { WEIGHTS, MIN_SERIES, scoreCandidate, rankCandidates };
+module.exports = { scoreCandidate, rankCandidates };

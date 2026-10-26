@@ -75,4 +75,4 @@ async function startHarness({ comics = [], prefs = [], sidecars = {}, cbzPages =
   };
 }
 
-module.exports = { startHarness, PNG_1PX, JPG_1PX };
+module.exports = { startHarness, PNG_1PX };
