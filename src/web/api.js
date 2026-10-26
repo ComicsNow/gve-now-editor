@@ -55,4 +55,4 @@ const api = {
   applyImport: (file, comicId, mode) => jsonPost('/api/import/apply', { file, comicId, mode })
 };
 
-module.exports = { api };
+module.exports = { api, request, jsonPost, jsonPut };

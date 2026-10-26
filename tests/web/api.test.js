@@ -1,4 +1,4 @@
-const { api } = require('../../src/web/api');
+const { api, request, jsonPost, jsonPut } = require('../../src/web/api');
 
 describe('api', () => {
   let originalFetch;
@@ -11,6 +11,38 @@ describe('api', () => {
   afterEach(() => {
     global.fetch = originalFetch;
     jest.restoreAllMocks();
+  });
+
+  describe('wrappers', () => {
+    beforeEach(() => {
+      global.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: 'success' })
+      });
+    });
+
+    it('request calls fetch correctly', async () => {
+      await request('/test-url', { method: 'GET' });
+      expect(global.fetch).toHaveBeenCalledWith('/test-url', { method: 'GET' });
+    });
+
+    it('jsonPost formats options correctly', async () => {
+      await jsonPost('/test-post', { foo: 'bar' });
+      expect(global.fetch).toHaveBeenCalledWith('/test-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ foo: 'bar' })
+      });
+    });
+
+    it('jsonPut formats options correctly', async () => {
+      await jsonPut('/test-put', { baz: 'qux' });
+      expect(global.fetch).toHaveBeenCalledWith('/test-put', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ baz: 'qux' })
+      });
+    });
   });
 
   describe('request methods', () => {
@@ -184,6 +216,13 @@ describe('api', () => {
         status: 500,
         data: null
       });
+    });
+
+    it('handles network errors (fetch throws)', async () => {
+      const networkError = new Error('Network Error');
+      global.fetch.mockRejectedValueOnce(networkError);
+
+      await expect(api.health()).rejects.toThrow('Network Error');
     });
   });
 });
