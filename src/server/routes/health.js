@@ -7,7 +7,6 @@ function createHealthRouter({ config, db }) {
   const router = express.Router();
 
   const countStmt = db.prepare('SELECT COUNT(*) as count FROM comics');
-  const checkStmt = db.prepare('SELECT 1 FROM comics WHERE id = ?');
 
   router.get('/health', async (req, res, next) => {
     try {
@@ -17,12 +16,25 @@ function createHealthRouter({ config, db }) {
       let orphans = 0;
       try {
         const files = await fs.promises.readdir(config.guidedViewDir);
+        const fileIds = [];
         for (const file of files) {
           if (!file.endsWith('.json')) continue;
           total++;
-          const id = file.slice(0, -5);
-          if (!checkStmt.get(id)) orphans++;
+          fileIds.push(file.slice(0, -5));
         }
+
+        if (fileIds.length > 0) {
+            let validCount = 0;
+            const BATCH_SIZE = 999;
+            for (let i = 0; i < fileIds.length; i += BATCH_SIZE) {
+                const batch = fileIds.slice(i, i + BATCH_SIZE);
+                const placeholders = batch.map(() => '?').join(',');
+                const stmt = db.prepare(`SELECT COUNT(id) as count FROM comics WHERE id IN (${placeholders})`);
+                validCount += stmt.get(...batch).count;
+            }
+            orphans = total - validCount;
+        }
+
       } catch (err) {
         if (err.code !== 'ENOENT') throw err;
       }
