@@ -50,7 +50,6 @@
     "archiver": "^5.3.2",
     "esbuild": "^0.25.0",
     "jest": "^30.4.2",
-    "jest-environment-jsdom": "^30.4.1",
-    "supertest": "^7.3.1"
+    "jest-environment-jsdom": "^30.4.1"
   }
 }
