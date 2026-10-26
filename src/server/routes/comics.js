@@ -93,7 +93,8 @@ function createComicsRouter({ config, db, store }) {
         return res.status(404).json({ error: `page not found in archive: ${page}` });
       }
 
-      const etag = `"${image.buffer.length}-${Math.round((await fs.promises.stat(found.comic.path)).mtimeMs)}"`;
+      const stat = await fs.promises.stat(found.comic.path);
+      const etag = `"${image.buffer.length}-${Math.round(stat.mtimeMs)}"`;
       if (req.headers['if-none-match'] === etag) return res.status(304).end();
 
       res.set('Content-Type', image.contentType || mimeFor(page));
