@@ -65,6 +65,7 @@ Environment variables (override `config.json`):
 | `GVE_NOW_CONFIG` | Path of the config file |
 | `COMICS_NOW_ROOT` | `comicsNowRoot` |
 | `GVE_NOW_PORT`, `GVE_NOW_BIND` | `port`, `bind` |
+| `GVE_NOW_ALLOWED_ROOTS` | A comma-separated list of allowed absolute directory paths for `comicsNowRoot`. Must be set to allow changing the root via the web UI. |
 
 ## Systemd
 

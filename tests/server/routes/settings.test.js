@@ -108,13 +108,13 @@ describe('routes/settings', () => {
     expect(body.errors.join(' ')).toMatch(/absolute path/);
   });
 
-  it('PUT rejects sensitive system directories in comicsNowRoot', async () => {
+  it('PUT rejects paths outside GVE_NOW_ALLOWED_ROOTS', async () => {
     const { status, body } = await api(h.baseUrl, '/api/settings', {
       method: 'PUT',
       body: { comicsNowRoot: '/etc/passwd' }
     });
     expect(status).toBe(400);
-    expect(body.errors.join(' ')).toMatch(/sensitive system directories/);
+    expect(body.errors.join(' ')).toMatch(/GVE_NOW_ALLOWED_ROOTS/);
 
     const status2 = (await api(h.baseUrl, '/api/settings', {
       method: 'PUT',
@@ -124,7 +124,7 @@ describe('routes/settings', () => {
   });
 
   it('warns that COMICS_NOW_ROOT env overrides the saved file', async () => {
-    const h2 = await startHarness({ env: ({ root }) => ({ COMICS_NOW_ROOT: root }) });
+    const h2 = await startHarness({ env: ({ root, dir }) => ({ COMICS_NOW_ROOT: root, GVE_NOW_ALLOWED_ROOTS: dir }) });
     try {
       const get = await api(h2.baseUrl, '/api/settings');
       expect(get.body.env.comicsNowRoot).toBe(true);

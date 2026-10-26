@@ -59,23 +59,33 @@ function createSettingsRouter({ config, configPath, env = process.env }) {
       });
     }
 
-    const isWin = process.platform === 'win32';
-    const restricted = isWin
-      ? ['c:\\windows', 'c:\\program files', 'c:\\program files (x86)', 'c:\\programdata']
-      : ['/etc', '/root', '/boot', '/sys', '/dev', '/proc', '/var', '/bin', '/sbin', '/usr'];
     const resolved = path.resolve(comicsNowRoot).toLowerCase();
-    const blocked = restricted.some((p) => {
-      const lowerP = p.toLowerCase();
-      return (
-        resolved === lowerP ||
-        resolved.startsWith(lowerP + path.sep) ||
-        (!isWin && resolved.startsWith(lowerP + '/'))
-      );
-    });
-    if (blocked) {
+    const allowedRootsStr = env.GVE_NOW_ALLOWED_ROOTS || '';
+    const allowedRoots = allowedRootsStr
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => path.resolve(p).toLowerCase());
+
+    if (allowedRoots.length === 0) {
       return res.status(400).json({
         ok: false,
-        errors: ['comicsNowRoot must not point to sensitive system directories']
+        errors: ['Changing comicsNowRoot via the API is disabled. Configure GVE_NOW_ALLOWED_ROOTS in the environment to allow specific directories.']
+      });
+    }
+
+    const isWin = process.platform === 'win32';
+    const isAllowed = allowedRoots.some((allowed) => {
+      return (
+        resolved === allowed ||
+        resolved.startsWith(allowed + path.sep) ||
+        (!isWin && resolved.startsWith(allowed + '/'))
+      );
+    });
+    if (!isAllowed) {
+      return res.status(400).json({
+        ok: false,
+        errors: ['comicsNowRoot must be within one of the directories specified by GVE_NOW_ALLOWED_ROOTS']
       });
     }
 

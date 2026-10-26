@@ -27,7 +27,10 @@ async function startHarness({ comics = [], prefs = [], sidecars = {}, cbzPages =
 
   const configPath = path.join(dir, 'config.json');
   fs.writeFileSync(configPath, JSON.stringify({ comicsNowRoot: root, ...configFile }, null, 2));
-  const appEnv = typeof env === 'function' ? env({ dir, root }) : env || {};
+  const appEnv = typeof env === 'function' ? env({ dir, root }) : {
+    GVE_NOW_ALLOWED_ROOTS: dir,
+    ...env
+  };
 
   const dbPath = path.join(root, 'comics-now.db');
   const db = createTestDb(dbPath);
