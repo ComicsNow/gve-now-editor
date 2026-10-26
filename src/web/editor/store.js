@@ -15,6 +15,22 @@ function copyItem(item) {
   return copy;
 }
 
+const pageItemCache = new WeakMap();
+
+function getPageItem(page, id) {
+  if (!page || !page.items) return null;
+  let cache = pageItemCache.get(page.items);
+  if (!cache || cache.length !== page.items.length) {
+    const map = new Map();
+    for (const item of page.items) {
+      map.set(item.id, item);
+    }
+    cache = { length: page.items.length, map };
+    pageItemCache.set(page.items, cache);
+  }
+  return cache.map.get(id) || null;
+}
+
 function createStore() {
   let doc = { comicId: null, type: 'western', pages: {} };
   let currentPage = null;
@@ -98,7 +114,7 @@ function createStore() {
     // clears it (back to a plain rect).
     updateItem(id, box, points, name = currentPage) {
       const p = requirePage(name);
-      const item = p.items.find((i) => i.id === id);
+      const item = getPageItem(p, id);
       if (!item) return false;
       item.box = [...box];
       if (points === null) delete item.points;
@@ -178,4 +194,4 @@ function createStore() {
   };
 }
 
-module.exports = { createStore };
+module.exports = { createStore, getPageItem };
