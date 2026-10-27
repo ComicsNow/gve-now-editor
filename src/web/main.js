@@ -3,7 +3,7 @@
 // App shell: view switching + editor orchestration.
 
 const { api } = require('./api');
-const { createStore } = require('./editor/store');
+const { createStore, getPageItem } = require('./editor/store');
 const { createUndoStack } = require('./editor/undo');
 const { createStage } = require('./editor/stage');
 const { attachKeyboard } = require('./editor/keyboard');
@@ -149,7 +149,7 @@ function handleAdd(kind, box, points) {
 
 function handleUpdateBox(id, box) {
   const page = store.getPage();
-  const item = page && page.items.find((i) => i.id === id);
+  const item = getPageItem(page, id);
   store.updateItem(id, box, shapeFor(item, box));
 }
 
@@ -178,7 +178,7 @@ function nudgeSelection(dx, dy, step) {
   if (!session || !page || !session.selection.size) return;
   pushSnapshot();
   for (const id of session.selection) {
-    const item = page.items.find((i) => i.id === id);
+    const item = getPageItem(page, id);
     if (item) {
       const box = translateBox(item.box, dx * step, dy * step, page, { clamp: false });
       store.updateItem(id, box, shapeFor(item, box));
@@ -254,7 +254,7 @@ function renderOrder() {
 function renderInspectorPanel() {
   const page = store.getPage();
   const ids = session ? [...session.selection] : [];
-  const item = page && ids.length === 1 ? page.items.find((i) => i.id === ids[0]) : null;
+  const item = page && ids.length === 1 ? getPageItem(page, ids[0]) : null;
   const badge = item && page ? page.order.indexOf(item.id) + 1 : null;
   renderInspector(el.inspector, {
     item,

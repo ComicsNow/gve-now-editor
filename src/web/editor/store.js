@@ -8,6 +8,16 @@ function copyPoints(points) {
   return points.map(([x, y]) => [x, y]);
 }
 
+function getPageItem(page, id) {
+  if (!page || !page.items) return undefined;
+  if (!page._itemMap || page._itemMap.items !== page.items || page._itemMap.length !== page.items.length) {
+    const map = new Map();
+    for (const item of page.items) map.set(item.id, item);
+    page._itemMap = { items: page.items, length: page.items.length, map };
+  }
+  return page._itemMap.map.get(id);
+}
+
 // Deep copy of one item, including polygon vertices when present.
 function copyItem(item) {
   const copy = { ...item, box: [...item.box] };
@@ -98,7 +108,7 @@ function createStore() {
     // clears it (back to a plain rect).
     updateItem(id, box, points, name = currentPage) {
       const p = requirePage(name);
-      const item = p.items.find((i) => i.id === id);
+      const item = getPageItem(p, id);
       if (!item) return false;
       item.box = [...box];
       if (points === null) delete item.points;
@@ -178,4 +188,4 @@ function createStore() {
   };
 }
 
-module.exports = { createStore };
+module.exports = { createStore, getPageItem };
