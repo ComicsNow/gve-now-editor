@@ -50,6 +50,7 @@ function renderInspector(el, { item, badge, onBoxChange, onDelete } = {}) {
   del.className = 'inspector-delete';
   del.textContent = 'Delete';
   del.title = 'Delete selected box (Del)';
+  del.setAttribute('aria-label', 'Delete selected box');
   del.addEventListener('click', () => {
     if (onDelete) onDelete();
   });
