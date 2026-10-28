@@ -54,6 +54,7 @@ describe('web/import-view', () => {
     expect(api.scoreImport).toHaveBeenCalledWith(FILE_DATA);
     const rows = el.querySelectorAll('.candidate-row');
     expect(rows).toHaveLength(2);
+    expect(rows[0].tagName).toBe('LABEL');
     expect(rows[0].textContent).toContain('0.90');
     expect(rows[0].querySelector('.source-match')).toBeTruthy();
     expect(rows[0].querySelector('input[type="radio"]').checked).toBe(true);

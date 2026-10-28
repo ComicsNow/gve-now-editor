@@ -1768,7 +1768,7 @@
           const listDiv = document.createElement("div");
           listDiv.className = "candidate-list";
           state.candidates.forEach((candidate) => {
-            const row = document.createElement("div");
+            const row = document.createElement("label");
             row.className = "candidate-row";
             row.dataset.id = candidate.comic.id;
             const radio = document.createElement("input");
