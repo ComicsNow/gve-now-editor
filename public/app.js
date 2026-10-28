@@ -932,6 +932,7 @@
         del.className = "inspector-delete";
         del.textContent = "Delete";
         del.title = "Delete selected box (Del)";
+        del.setAttribute("aria-label", "Delete selected box");
         del.addEventListener("click", () => {
           if (onDelete) onDelete();
         });
@@ -1644,10 +1645,12 @@
         prevBtn.type = "button";
         prevBtn.className = "pager-prev";
         prevBtn.textContent = "\u2190 Prev";
+        prevBtn.setAttribute("aria-label", "Previous page");
         const nextBtn = document.createElement("button");
         nextBtn.type = "button";
         nextBtn.className = "pager-next";
         nextBtn.textContent = "Next \u2192";
+        nextBtn.setAttribute("aria-label", "Next page");
         const pageInfo = document.createElement("span");
         pageInfo.className = "pager-info";
         pager.append(prevBtn, pageInfo, nextBtn);

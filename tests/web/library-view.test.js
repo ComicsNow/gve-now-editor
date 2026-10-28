@@ -85,6 +85,8 @@ describe('web/library-view', () => {
     expect(el.querySelector('.pager-info').textContent).toBe('Page 1 of 3');
     expect(el.querySelector('.pager-prev').disabled).toBe(true);
     expect(el.querySelector('.pager-next').disabled).toBe(false);
+    expect(el.querySelector('.pager-prev').getAttribute('aria-label')).toBe('Previous page');
+    expect(el.querySelector('.pager-next').getAttribute('aria-label')).toBe('Next page');
     expect(el.querySelector('.library-status').textContent).toBe('120 comic(s)');
 
     el.querySelector('.pager-next').click();

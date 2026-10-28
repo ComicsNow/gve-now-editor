@@ -62,6 +62,7 @@ describe('web/inspector', () => {
     const button = el.querySelector('.inspector-delete');
     expect(button).not.toBeNull();
     expect(button.textContent).toBe('Delete');
+    expect(button.getAttribute('aria-label')).toBe('Delete selected box');
     button.click();
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
