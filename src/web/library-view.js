@@ -45,10 +45,12 @@ function createLibraryView(el, { api, onOpen, onExport }) {
   prevBtn.type = 'button';
   prevBtn.className = 'pager-prev';
   prevBtn.textContent = '← Prev';
+  prevBtn.setAttribute('aria-label', 'Previous page');
   const nextBtn = document.createElement('button');
   nextBtn.type = 'button';
   nextBtn.className = 'pager-next';
   nextBtn.textContent = 'Next →';
+  nextBtn.setAttribute('aria-label', 'Next page');
   const pageInfo = document.createElement('span');
   pageInfo.className = 'pager-info';
   pager.append(prevBtn, pageInfo, nextBtn);
