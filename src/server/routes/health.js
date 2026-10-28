@@ -5,10 +5,12 @@ const express = require('express');
 
 function createHealthRouter({ config, db }) {
   const router = express.Router();
+  // ⚡ Bolt: Pre-compile statement and use .pluck() to avoid re-parsing SQL and skip intermediate object allocation.
+  const getComicIds = db.prepare('SELECT id FROM comics').pluck();
 
   router.get('/health', async (req, res, next) => {
     try {
-      const ids = new Set(db.prepare('SELECT id FROM comics').all().map((row) => row.id));
+      const ids = new Set(getComicIds.all());
 
       let total = 0;
       let orphans = 0;
