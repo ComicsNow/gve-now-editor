@@ -5,3 +5,7 @@
 ## 2026-10-27 - Frontend Page Item O(1) Cache
 **Learning:** In the frontend editor, O(N) array lookups using `.find()` in rendering loops and nudging actions were bottlenecks. Adding a lazily evaluated Map to cache items inside the `page` object provides O(1) lookup. Because mutations can happen in place (`updateItem`), the map is tied to the array's reference and length, ensuring safe cache invalidation without unnecessary rebuilds.
 **Action:** Use `getPageItem(page, id)` (now in `src/web/editor/store.js`) when looking up items by ID to maintain O(1) performance.
+
+## 2026-10-28 - Pre-compiled queries & .pluck() overhead reduction
+**Learning:** Re-compiling a prepared statement inside a frequently hit Express route (`db.prepare(...)`) introduces unnecessary overhead. Furthermore, `better-sqlite3` creates intermediate JavaScript objects when using `.all().map()`.
+**Action:** When extracting a single column from all rows, hoist `db.prepare(...).pluck()` outside the route handler. Calling `.all()` on this pre-compiled, pluck-configured statement returns a direct array of primitives, bypassing mapping and significant garbage collection overhead.
