@@ -65,6 +65,15 @@
       function copyPoints(points) {
         return points.map(([x, y]) => [x, y]);
       }
+      function getPageItem2(page, id) {
+        if (!page || !page.items) return void 0;
+        if (!page._itemMap || page._itemMap.items !== page.items || page._itemMap.length !== page.items.length) {
+          const map = /* @__PURE__ */ new Map();
+          for (const item of page.items) map.set(item.id, item);
+          page._itemMap = { items: page.items, length: page.items.length, map };
+        }
+        return page._itemMap.map.get(id);
+      }
       function copyItem(item) {
         const copy = { ...item, box: [...item.box] };
         if (item.points) copy.points = copyPoints(item.points);
@@ -143,7 +152,7 @@
           // clears it (back to a plain rect).
           updateItem(id, box, points, name = currentPage) {
             const p = requirePage(name);
-            const item = p.items.find((i) => i.id === id);
+            const item = getPageItem2(p, id);
             if (!item) return false;
             item.box = [...box];
             if (points === null) delete item.points;
@@ -215,7 +224,7 @@
           }
         };
       }
-      module.exports = { createStore: createStore2 };
+      module.exports = { createStore: createStore2, getPageItem: getPageItem2 };
     }
   });
 
@@ -503,6 +512,7 @@
     "src/web/editor/stage.js"(exports, module) {
       "use strict";
       var { renderOverlay } = require_overlay();
+      var { getPageItem: getPageItem2 } = require_store();
       var { pointerToNative, boxFromPoints, resizeBox, translateBox: translateBox2, polygonBox, MIN_BOX_SIZE } = require_interact();
       var { zoomAt, resolveView } = require_view_math();
       var ZOOM_SENSITIVITY = 1.0015;
@@ -710,13 +720,13 @@
           }
           if (mode === "select") {
             if (boxEl && handleEl) {
-              const item = page.items.find((i) => i.id === boxEl.dataset.id);
+              const item = getPageItem2(page, boxEl.dataset.id);
               if (!item) return;
               e.preventDefault();
               if (handlers.onBeginEdit) handlers.onBeginEdit(item.id);
               drag = { kind: "resize", id: item.id, handle: handleEl.dataset.handle, origBox: [...item.box], start };
             } else if (boxEl) {
-              const item = page.items.find((i) => i.id === boxEl.dataset.id);
+              const item = getPageItem2(page, boxEl.dataset.id);
               if (!item) return;
               e.preventDefault();
               if (handlers.onSelect && !selected.has(item.id) && !e.shiftKey) handlers.onSelect(item.id, { additive: false });
@@ -2080,7 +2090,7 @@
 
   // src/web/main.js
   var { api } = require_api();
-  var { createStore } = require_store();
+  var { createStore, getPageItem } = require_store();
   var { createUndoStack } = require_undo();
   var { createStage } = require_stage();
   var { attachKeyboard } = require_keyboard();
@@ -2200,7 +2210,7 @@
   }
   function handleUpdateBox(id, box) {
     const page = store.getPage();
-    const item = page && page.items.find((i) => i.id === id);
+    const item = getPageItem(page, id);
     store.updateItem(id, box, shapeFor(item, box));
   }
   function handleBeginEdit() {
@@ -2224,7 +2234,7 @@
     if (!session || !page || !session.selection.size) return;
     pushSnapshot();
     for (const id of session.selection) {
-      const item = page.items.find((i) => i.id === id);
+      const item = getPageItem(page, id);
       if (item) {
         const box = translateBox(item.box, dx * step, dy * step, page, { clamp: false });
         store.updateItem(id, box, shapeFor(item, box));
@@ -2293,7 +2303,7 @@
   function renderInspectorPanel() {
     const page = store.getPage();
     const ids = session ? [...session.selection] : [];
-    const item = page && ids.length === 1 ? page.items.find((i) => i.id === ids[0]) : null;
+    const item = page && ids.length === 1 ? getPageItem(page, ids[0]) : null;
     const badge = item && page ? page.order.indexOf(item.id) + 1 : null;
     renderInspector(el.inspector, {
       item,

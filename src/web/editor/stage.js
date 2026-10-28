@@ -4,6 +4,7 @@
 // All pointer math goes through interact.js; this module is the wiring.
 
 const { renderOverlay } = require('./overlay');
+const { getPageItem } = require('./store');
 const { pointerToNative, boxFromPoints, resizeBox, translateBox, polygonBox, MIN_BOX_SIZE } = require('./interact');
 const { zoomAt, resolveView } = require('./view-math');
 
@@ -252,13 +253,13 @@ function createStage(container, handlers = {}) {
 
     if (mode === 'select') {
       if (boxEl && handleEl) {
-        const item = page.items.find((i) => i.id === boxEl.dataset.id);
+        const item = getPageItem(page, boxEl.dataset.id);
         if (!item) return;
         e.preventDefault();
         if (handlers.onBeginEdit) handlers.onBeginEdit(item.id);
         drag = { kind: 'resize', id: item.id, handle: handleEl.dataset.handle, origBox: [...item.box], start };
       } else if (boxEl) {
-        const item = page.items.find((i) => i.id === boxEl.dataset.id);
+        const item = getPageItem(page, boxEl.dataset.id);
         if (!item) return;
         e.preventDefault();
         // Select on press: the pointerdown->drag re-render replaces the box

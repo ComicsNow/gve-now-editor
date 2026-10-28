@@ -1,4 +1,4 @@
-const { createStore } = require('../../src/web/editor/store');
+const { createStore, getPageItem } = require('../../src/web/editor/store');
 
 function sampleDoc() {
   return {
@@ -152,5 +152,20 @@ describe('web/store', () => {
     const store = createStore();
     store.load(sampleDoc());
     expect(() => store.setCurrentPage('nope.jpg')).toThrow('unknown page');
+  });
+
+  it('retrieves items by id in O(1) with getPageItem and invalidates cache on item change', () => {
+    const doc = sampleDoc();
+    const page = doc.pages['P00001.jpg'];
+    expect(getPageItem(null, 'i0')).toBeUndefined();
+    expect(getPageItem(page, 'nonexistent')).toBeUndefined();
+    const item = getPageItem(page, 'i0');
+    expect(item).toEqual({ id: 'i0', kind: 'panel', box: [0, 0, 100, 200] });
+    expect(page._itemMap).toBeDefined();
+    expect(page._itemMap.map.get('i0')).toBe(item);
+
+    // After adding an item, cache updates
+    page.items.push({ id: 'i2', kind: 'bubble', box: [5, 5, 20, 20] });
+    expect(getPageItem(page, 'i2')).toEqual({ id: 'i2', kind: 'bubble', box: [5, 5, 20, 20] });
   });
 });
