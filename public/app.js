@@ -1685,6 +1685,9 @@
             exportBtn.type = "button";
             exportBtn.textContent = "Export";
             exportBtn.disabled = !comic.guidedViewPath;
+            if (!comic.guidedViewPath) {
+              exportBtn.title = "Comic does not have guided view data to export";
+            }
             exportBtn.addEventListener("click", () => onExport(comic.id));
             row.append(open, exportBtn);
             list.appendChild(row);
