@@ -4,8 +4,16 @@ config.*.json
 coverage/
 *.log
 .remember/
+.claude/
+.Jules/
+.jules/
+.agent-handoff.md
 
-# never commit a real library DB or local data
+# never commit a real library DB, comic archives, or local fixture data
 *.db
 *.sqlite
 *.sqlite3
+*.cbz
+*.cbr
+*.pdf
+tests/fixtures/

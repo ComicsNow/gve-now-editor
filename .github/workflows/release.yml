@@ -1,10 +1,6 @@
 name: release
 
 on:
-  push:
-    # (disabled tag push)
-  # tags:
-  #   - 'v*.*.*'
   workflow_dispatch:
 
 jobs:
@@ -12,12 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm test
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
 
   docker:
     needs: test
@@ -80,12 +77,14 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
-      - run: npm ci
-      - run: npm run build:web
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build:web
       - name: Check if version is already on npm
         id: npm-version
         run: |
@@ -98,4 +97,4 @@ jobs:
           fi
       - name: Publish package to npm
         if: steps.npm-version.outputs.published != 'true'
-        run: npx npm@latest publish --provenance --access public
+        run: pnpm publish --provenance --access public --no-git-checks

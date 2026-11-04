@@ -27,32 +27,32 @@ describe('server/comics-repo', () => {
 
   describe('searchComics', () => {
     beforeEach(() => {
-      insertComic(db, { id: 'a', series: 'Closer to Danger', name: 'Closer 01.cbz', path: '/libs/A/a.cbz', guidedViewStatus: 'completed', metadata: '{"Number":"1","Year":"2024"}' });
-      insertComic(db, { id: 'b', series: 'Berserk', name: 'Berserk v1.cbz', path: '/libs/A/b.cbz', guidedViewStatus: 'pending', metadata: '{"Number":"1"}' });
-      insertComic(db, { id: 'c', series: 'Danger Mouse', name: 'DM 2.cbz', path: '/libs/B/c.cbz', guidedViewStatus: 'completed', metadata: '{"Number":"2"}' });
+      insertComic(db, { id: 'a', series: 'Cobalt Horizon', name: 'Cobalt 01.cbz', path: '/libs/A/a.cbz', guidedViewStatus: 'completed', metadata: '{"Number":"1","Year":"2024"}' });
+      insertComic(db, { id: 'b', series: 'Aether Drift', name: 'Aether v1.cbz', path: '/libs/A/b.cbz', guidedViewStatus: 'pending', metadata: '{"Number":"1"}' });
+      insertComic(db, { id: 'c', series: 'Horizon Patrol', name: 'HP 2.cbz', path: '/libs/B/c.cbz', guidedViewStatus: 'completed', metadata: '{"Number":"2"}' });
     });
 
     it('filters by query across series and name, case-insensitively', () => {
       const all = searchComics(db, {});
       expect(all.map((r) => r.id).sort()).toEqual(['a', 'b', 'c']);
 
-      const danger = searchComics(db, { q: 'danger' });
-      expect(danger.map((r) => r.id).sort()).toEqual(['a', 'c']);
-      expect(danger[0].metadata).toBeDefined();
+      const horizon = searchComics(db, { q: 'horizon' });
+      expect(horizon.map((r) => r.id).sort()).toEqual(['a', 'c']);
+      expect(horizon[0].metadata).toBeDefined();
     });
 
     it('filters by guided view status and paginates', () => {
       const completed = searchComics(db, { status: 'completed' });
       expect(completed.map((r) => r.id).sort()).toEqual(['a', 'c']);
 
-      // ORDER BY series, name -> [Berserk(b), Closer to Danger(a), Danger Mouse(c)]
+      // ORDER BY series, name -> [Aether Drift(b), Cobalt Horizon(a), Horizon Patrol(c)]
       const page = searchComics(db, { limit: 1, offset: 1 });
       expect(page.length).toBe(1);
       expect(page[0].id).toBe('a');
     });
 
     it('escapes LIKE wildcards % and _ to match literal characters only', () => {
-      insertComic(db, { id: 'd', series: '100% Danger', name: 'Issue 1.cbz', path: '/libs/A/d.cbz' });
+      insertComic(db, { id: 'd', series: '100% Horizon', name: 'Issue 1.cbz', path: '/libs/A/d.cbz' });
       insertComic(db, { id: 'e', series: 'Special_Edition', name: 'Issue 2.cbz', path: '/libs/A/e.cbz' });
 
       const pct = searchComics(db, { q: '%' });
@@ -65,16 +65,16 @@ describe('server/comics-repo', () => {
 
   describe('countComics', () => {
     beforeEach(() => {
-      insertComic(db, { id: 'a', series: 'Closer to Danger', name: 'Closer 01.cbz', path: '/libs/A/a.cbz', guidedViewStatus: 'completed', metadata: '{}' });
-      insertComic(db, { id: 'b', series: 'Berserk', name: 'Berserk v1.cbz', path: '/libs/A/b.cbz', guidedViewStatus: 'pending', metadata: '{}' });
-      insertComic(db, { id: 'c', series: 'Danger Mouse', name: 'DM 2.cbz', path: '/libs/B/c.cbz', guidedViewStatus: 'completed', metadata: '{}' });
+      insertComic(db, { id: 'a', series: 'Cobalt Horizon', name: 'Cobalt 01.cbz', path: '/libs/A/a.cbz', guidedViewStatus: 'completed', metadata: '{}' });
+      insertComic(db, { id: 'b', series: 'Aether Drift', name: 'Aether v1.cbz', path: '/libs/A/b.cbz', guidedViewStatus: 'pending', metadata: '{}' });
+      insertComic(db, { id: 'c', series: 'Horizon Patrol', name: 'HP 2.cbz', path: '/libs/B/c.cbz', guidedViewStatus: 'completed', metadata: '{}' });
     });
 
     it('counts with the same filters as searchComics', () => {
       expect(countComics(db, {})).toBe(3);
-      expect(countComics(db, { q: 'danger' })).toBe(2);
+      expect(countComics(db, { q: 'horizon' })).toBe(2);
       expect(countComics(db, { status: 'completed' })).toBe(2);
-      expect(countComics(db, { q: 'danger', status: 'completed' })).toBe(2);
+      expect(countComics(db, { q: 'horizon', status: 'completed' })).toBe(2);
       expect(countComics(db, { q: 'nomatch' })).toBe(0);
     });
   });

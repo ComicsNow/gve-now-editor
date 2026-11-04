@@ -2,20 +2,20 @@ const { scoreCandidate, rankCandidates } = require('../../src/server/match');
 
 const exportComic = {
   sourceComicId: 'abc',
-  series: 'Closer to Danger',
+  series: 'Star Voyagers',
   number: '23',
   year: '2024',
-  fileName: '01 Closer to Danger [AAM-Markosia] (2024) #23.cbz',
-  fileBaseName: '01 Closer to Danger [AAM-Markosia] (2024) #23',
+  fileName: '01 Star Voyagers [Acme-Press] (2024) #23.cbz',
+  fileBaseName: '01 Star Voyagers [Acme-Press] (2024) #23',
   pageCount: 24
 };
 
 const candidate = (overrides = {}) => ({
   id: 'cand',
-  series: 'Closer to Danger',
-  name: '01 Closer to Danger [AAM-Markosia] (2024) #23.cbz',
+  series: 'Star Voyagers',
+  name: '01 Star Voyagers [Acme-Press] (2024) #23.cbz',
   totalPages: 24,
-  metadata: { Series: 'Closer to Danger', Number: '23', Year: '2024' },
+  metadata: { Series: 'Star Voyagers', Number: '23', Year: '2024' },
   ...overrides
 });
 
@@ -40,7 +40,7 @@ describe('server/match', () => {
 
     it('scores partial components: wrong number, +/-1 year, +/-2 pages', () => {
       const r = scoreCandidate(exportComic, candidate({
-        metadata: { Series: 'Closer to Danger', Number: '24', Year: '2025' },
+        metadata: { Series: 'Star Voyagers', Number: '24', Year: '2025' },
         totalPages: 26
       }));
       expect(r.breakdown.number.score).toBe(0);
@@ -51,7 +51,7 @@ describe('server/match', () => {
     });
 
     it('renormalizes weights over present components only', () => {
-      const r = scoreCandidate(exportComic, candidate({ metadata: { Series: 'Closer to Danger' }, totalPages: null }));
+      const r = scoreCandidate(exportComic, candidate({ metadata: { Series: 'Star Voyagers' }, totalPages: null }));
       expect(r.breakdown.number).toBeUndefined();
       expect(r.breakdown.year).toBeUndefined();
       expect(r.breakdown.pageCount).toBeUndefined();
@@ -63,13 +63,13 @@ describe('server/match', () => {
     it('falls back to the file name when a series is missing', () => {
       const r = scoreCandidate(
         { ...exportComic, series: null },
-        candidate({ series: null, metadata: {}, name: 'Closer to Danger [AAM-Markosia] (2024) #23.cbz' })
+        candidate({ series: null, metadata: {}, name: 'Star Voyagers [Acme-Press] (2024) #23.cbz' })
       );
       expect(r.breakdown.series.score).toBeGreaterThan(0.5);
     });
 
     it('normalizes issue numbers before comparing', () => {
-      const r = scoreCandidate(exportComic, candidate({ metadata: { Series: 'Closer to Danger', Number: '023', Year: '2024' } }));
+      const r = scoreCandidate(exportComic, candidate({ metadata: { Series: 'Star Voyagers', Number: '023', Year: '2024' } }));
       expect(r.breakdown.number.score).toBe(1);
     });
   });
@@ -78,14 +78,14 @@ describe('server/match', () => {
     it('drops candidates whose series similarity is below 0.4 and sorts by score', () => {
       const ranked = rankCandidates(exportComic, [
         candidate({ id: 'unrelated', series: 'Space Pirates', metadata: { Series: 'Space Pirates', Number: '1' }, name: 'Space Pirates 01.cbz' }),
-        candidate({ id: 'wrong-year', metadata: { Series: 'Closer to Danger', Number: '23', Year: '2019' } }),
+        candidate({ id: 'wrong-year', metadata: { Series: 'Star Voyagers', Number: '23', Year: '2019' } }),
         candidate({ id: 'exact' })
       ]);
       expect(ranked.map((r) => r.comic.id)).toEqual(['exact', 'wrong-year']);
     });
 
     it('limits results and keeps the breakdown for display', () => {
-      const many = Array.from({ length: 8 }, (_, i) => candidate({ id: `c${i}`, metadata: { Series: 'Closer to Danger', Number: `${i}`, Year: '2024' } }));
+      const many = Array.from({ length: 8 }, (_, i) => candidate({ id: `c${i}`, metadata: { Series: 'Star Voyagers', Number: `${i}`, Year: '2024' } }));
       const ranked = rankCandidates(exportComic, many, { limit: 5 });
       expect(ranked.length).toBe(5);
       expect(ranked[0].breakdown.series.score).toBe(1);

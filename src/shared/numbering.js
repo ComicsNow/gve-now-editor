@@ -27,7 +27,7 @@ function normalizeYear(v) {
 }
 
 // Best-effort identity hints from a release filename, e.g.
-// "01 Closer to Danger [AAM-Markosia] (2024) #23.cbz" -> series/number/year/null.
+// "01 Star Voyagers [Acme-Press] (2024) #23.cbz" -> series/number/year/null.
 function parseFileNameHints(fileName) {
   let s = String(fileName || '').replace(/\.(cbz|cbr|pdf)$/i, '');
 

@@ -32,8 +32,8 @@ describe('api', () => {
     });
 
     it('listComics with params', async () => {
-      await api.listComics({ q: 'batman', status: 'read', limit: 10, offset: 5 });
-      expect(global.fetch).toHaveBeenCalledWith('/api/comics?q=batman&status=read&limit=10&offset=5', undefined);
+      await api.listComics({ q: 'alpha', status: 'read', limit: 10, offset: 5 });
+      expect(global.fetch).toHaveBeenCalledWith('/api/comics?q=alpha&status=read&limit=10&offset=5', undefined);
     });
 
     it('getComic', async () => {

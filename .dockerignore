@@ -6,6 +6,13 @@ tests
 config.json
 config.*.json
 .remember
+.claude
+.Jules
+.jules
+.agent-handoff.md
+*.cbz
+*.cbr
+*.pdf
 docs
 *.log
 npm-debug.log*

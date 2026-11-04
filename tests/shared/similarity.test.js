@@ -9,14 +9,14 @@ const {
 describe('shared/similarity (port of tagger calculate_similarity)', () => {
   describe('cleanForSimilarity', () => {
     it('lowercases, strips .cbz, bracketed groups, volume and issue markers', () => {
-      expect(cleanForSimilarity('Batman   #001 (2016) (Digital) (Zone-Empire).cbz')).toBe('batman');
-      expect(cleanForSimilarity('Saga Vol 1')).toBe('saga');
-      expect(cleanForSimilarity('DIE!')).toBe('die');
-      expect(cleanForSimilarity('The Amazing Spider-Man')).toBe('the amazing spider man');
+      expect(cleanForSimilarity('Falcon   #001 (2016) (Edition) (Demo-Sample).cbz')).toBe('falcon');
+      expect(cleanForSimilarity('Nova Vol 1')).toBe('nova');
+      expect(cleanForSimilarity('ZAP!')).toBe('zap');
+      expect(cleanForSimilarity('The Quantum Rocket-Man')).toBe('the quantum rocket man');
     });
 
     it('does not strip non-cbz extensions (matches the Python source)', () => {
-      expect(cleanForSimilarity('Batman.cbr')).toBe('batman cbr');
+      expect(cleanForSimilarity('Falcon.cbr')).toBe('falcon cbr');
     });
   });
 
@@ -24,24 +24,24 @@ describe('shared/similarity (port of tagger calculate_similarity)', () => {
     it('computes 2M/T', () => {
       expect(sequenceMatcherRatio('abc', 'abc')).toBe(1);
       expect(sequenceMatcherRatio('abc', 'xyz')).toBe(0);
-      expect(sequenceMatcherRatio('batman', 'batmen')).toBeCloseTo(5 / 6, 10);
+      expect(sequenceMatcherRatio('falcon', 'falcen')).toBeCloseTo(5 / 6, 10);
     });
   });
 
   describe('calculateSimilarity golden vectors', () => {
     const vectors = [
-      ['Watchmen (2019)', 'Watchmen', 1.0],
-      ['Batman   #001 (2016) (Digital) (Zone-Empire).cbz', 'Batman', 1.0],
-      ['Asterix and the Secret Weapon', 'Asterix and the Secret Weapon (1991)', 1.0],
-      ['One Piece v105', 'One Piece', 1.0],
-      ['Saga', 'Saga Vol 1', 1.0],
-      ['DIE', 'DIE!', 1.0],
-      ['The Amazing Spider-Man', 'Amazing Spider-Man', 0.9],
-      ['X-Men Vol. 2 #003', 'X Men 2 3', 0.7142857142857143],
-      ['Assorted Crisis Events v01 (2025) (Digital) (DR & Quinch-Empire).cbz', 'Crisis', 0.42857142857142855],
-      ['Batman', 'Batmen', 0.8333333333333334],
-      ['', 'Batman', 0.0],
-      ['Batman', 'Batman', 1.0]
+      ['Stardust (2019)', 'Stardust', 1.0],
+      ['Falcon   #001 (2016) (Edition) (Demo-Sample).cbz', 'Falcon', 1.0],
+      ['Solaris and the Hidden Beacon', 'Solaris and the Hidden Beacon (1991)', 1.0],
+      ['Red Orbit v105', 'Red Orbit', 1.0],
+      ['Nova', 'Nova Vol 1', 1.0],
+      ['ZAP', 'ZAP!', 1.0],
+      ['The Quantum Rocket-Man', 'Quantum Rocket-Man', 0.9],
+      ['Z-Men Vol. 2 #003', 'Z Men 2 3', 0.7142857142857143],
+      ['Parallel Cosmos Realms v01 (2025) (Edition) (Sample-Archive).cbz', 'Cosmos', 0.42857142857142855],
+      ['Falcon', 'Falcen', 0.8333333333333334],
+      ['', 'Falcon', 0.0],
+      ['Falcon', 'Falcon', 1.0]
     ];
 
     for (const [a, b, expected] of vectors) {
@@ -51,15 +51,15 @@ describe('shared/similarity (port of tagger calculate_similarity)', () => {
     }
 
     it('returns 0.90 for a >=85% substring match, before difflib', () => {
-      // 'southern bastard' is a 94% substring of 'southern bastards' -> the rule returns 0.90
+      // 'northern outpost' is a 94% substring of 'northern outposts' -> the rule returns 0.90
       // even though difflib alone would score ~0.97.
-      expect(calculateSimilarity('Southern Bastards', 'Southern Bastard')).toBe(0.9);
+      expect(calculateSimilarity('Northern Outposts', 'Northern Outpost')).toBe(0.9);
     });
 
     it('returns 0 for empty/whitespace input', () => {
       expect(calculateSimilarity('', '')).toBe(0);
-      expect(calculateSimilarity(null, 'Batman')).toBe(0);
-      expect(calculateSimilarity('   ', 'Batman')).toBe(0);
+      expect(calculateSimilarity(null, 'Falcon')).toBe(0);
+      expect(calculateSimilarity('   ', 'Falcon')).toBe(0);
     });
   });
 });

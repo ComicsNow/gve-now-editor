@@ -29,7 +29,7 @@ Create `config.json` pointing at your comics-now install (see
 
 ```json
 {
-  "comicsNowRoot": "/media/comics/comics-now",
+  "comicsNowRoot": "/opt/comics-now",
   "bind": "127.0.0.1"
 }
 ```

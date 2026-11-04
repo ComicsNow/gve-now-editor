@@ -61,8 +61,8 @@ describe('shared/numbering', () => {
 
   describe('parseFileNameHints', () => {
     it('extracts series, number, year and volume from a release filename', () => {
-      expect(parseFileNameHints('01 Closer to Danger [AAM-Markosia] (2024) #23.cbz')).toEqual({
-        series: 'Closer to Danger',
+      expect(parseFileNameHints('01 Star Voyagers [Acme-Press] (2024) #23.cbz')).toEqual({
+        series: 'Star Voyagers',
         number: '23',
         year: '2024',
         volume: null
@@ -70,8 +70,8 @@ describe('shared/numbering', () => {
     });
 
     it('handles volume markers and non-cbz extensions', () => {
-      expect(parseFileNameHints('Saga Vol. 3 (2014) #12.cbr')).toEqual({
-        series: 'Saga',
+      expect(parseFileNameHints('Orbit Vol. 3 (2014) #12.cbr')).toEqual({
+        series: 'Orbit',
         number: '12',
         year: '2014',
         volume: '3'
@@ -79,8 +79,8 @@ describe('shared/numbering', () => {
     });
 
     it('returns nulls when hints are absent', () => {
-      expect(parseFileNameHints('Watchmen.cbz')).toEqual({
-        series: 'Watchmen',
+      expect(parseFileNameHints('Monolith.cbz')).toEqual({
+        series: 'Monolith',
         number: null,
         year: null,
         volume: null

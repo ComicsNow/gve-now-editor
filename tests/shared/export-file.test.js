@@ -7,15 +7,15 @@ const {
 
 const comicRow = {
   id: 'abc123',
-  path: '/library/comics/01 Closer to Danger [AAM-Markosia] (2024) #23.cbz',
-  name: '01 Closer to Danger [AAM-Markosia] (2024) #23.cbz',
-  series: 'Closer to Danger',
-  publisher: 'AAM/Markosia',
-  metadata: JSON.stringify({ Series: 'Closer to Danger', Number: '23', Volume: '', Year: '2024', Title: '' })
+  path: '/library/comics/01 Star Voyagers [Acme-Press] (2024) #23.cbz',
+  name: '01 Star Voyagers [Acme-Press] (2024) #23.cbz',
+  series: 'Star Voyagers',
+  publisher: 'Acme/Press',
+  metadata: JSON.stringify({ Series: 'Star Voyagers', Number: '23', Volume: '', Year: '2024', Title: '' })
 };
 
 const pages = {
-  'P00011.jpg': { width: 1988, height: 3056, panels: [[0, 0, 1988, 3056]], bubbles: [], sequence: [[0, 0, 1988, 3056]] }
+  'page_001.jpg': { width: 1988, height: 3056, panels: [[0, 0, 1988, 3056]], bubbles: [], sequence: [[0, 0, 1988, 3056]] }
 };
 
 describe('shared/export-file', () => {
@@ -24,7 +24,7 @@ describe('shared/export-file', () => {
       comic: comicRow,
       type: 'western',
       pages,
-      pageOrder: ['P00011.jpg'],
+      pageOrder: ['page_001.jpg'],
       exportedAt: '2026-10-04T12:00:00.000Z',
       appVersion: '0.1.0'
     });
@@ -39,12 +39,12 @@ describe('shared/export-file', () => {
 
     it('builds identity fields from the row and its metadata JSON', () => {
       expect(exp.comic.sourceComicId).toBe('abc123');
-      expect(exp.comic.series).toBe('Closer to Danger');
+      expect(exp.comic.series).toBe('Star Voyagers');
       expect(exp.comic.number).toBe('23');
       expect(exp.comic.year).toBe('2024');
-      expect(exp.comic.publisher).toBe('AAM/Markosia');
-      expect(exp.comic.fileName).toBe('01 Closer to Danger [AAM-Markosia] (2024) #23.cbz');
-      expect(exp.comic.fileBaseName).toBe('01 Closer to Danger [AAM-Markosia] (2024) #23');
+      expect(exp.comic.publisher).toBe('Acme/Press');
+      expect(exp.comic.fileName).toBe('01 Star Voyagers [Acme-Press] (2024) #23.cbz');
+      expect(exp.comic.fileBaseName).toBe('01 Star Voyagers [Acme-Press] (2024) #23');
       expect(exp.comic.pageCount).toBe(1);
     });
 
@@ -60,15 +60,15 @@ describe('shared/export-file', () => {
   });
 
   describe('parseExportFile', () => {
-    const valid = buildExportFile({ comic: comicRow, type: 'western', pages, pageOrder: ['P00011.jpg'], appVersion: '0.1.0' });
+    const valid = buildExportFile({ comic: comicRow, type: 'western', pages, pageOrder: ['page_001.jpg'], appVersion: '0.1.0' });
 
     it('accepts a valid export file', () => {
       const r = parseExportFile(JSON.parse(JSON.stringify(valid)));
       expect(r.ok).toBe(true);
       expect(r.data.type).toBe('western');
       expect(r.data.pages).toEqual(pages);
-      expect(r.data.pageOrder).toEqual(['P00011.jpg']);
-      expect(r.data.comic.series).toBe('Closer to Danger');
+      expect(r.data.pageOrder).toEqual(['page_001.jpg']);
+      expect(r.data.comic.series).toBe('Star Voyagers');
     });
 
     it('defaults a missing pageOrder to the pages keys', () => {
@@ -103,8 +103,8 @@ describe('shared/export-file', () => {
 
   describe('exportFileName', () => {
     it("names the download after the comic's file name (extension swapped)", () => {
-      expect(exportFileName('Batman (1940-2011) 474.cbz')).toBe('Batman (1940-2011) 474.json');
-      expect(exportFileName('Watchmen.cbr')).toBe('Watchmen.json');
+      expect(exportFileName('Star Voyagers (1940-2011) 474.cbz')).toBe('Star Voyagers (1940-2011) 474.json');
+      expect(exportFileName('Monolith.cbr')).toBe('Monolith.json');
       expect(exportFileName('No Extension')).toBe('No Extension.json');
     });
 

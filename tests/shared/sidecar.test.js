@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const {
   normalizeBox,
   normalizeSidecarPage,
@@ -11,9 +9,46 @@ const {
   validateEditorDocument
 } = require('../../src/shared/sidecar');
 
-const load = (f) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'sidecars', f), 'utf8'));
-const WEST = load('western-sample.json');
-const MANGA = load('manga-sample.json');
+const WEST = {
+  comicId: 'western-sample-0001',
+  type: 'western',
+  pages: {
+    'page_001.jpg': {
+      panels: [[40, 40, 800, 600], [40, 680, 800, 600]],
+      bubbles: [[80, 70, 220, 110], [420, 90, 240, 120], [90, 720, 260, 130]],
+      sequence: [[80, 70, 220, 110], [420, 90, 240, 120], [90, 720, 260, 130]]
+    },
+    'page_002.jpg': {
+      panels: [[0, 0, 900, 1300]],
+      bubbles: [],
+      sequence: [[0, 0, 900, 1300]]
+    }
+  }
+};
+
+const MANGA = {
+  comicId: 'manga-sample-0001',
+  type: 'manga',
+  pages: {
+    'vol-01/page_001.jpg': {
+      panels: [[600, 50, 500, 600], [720, 90, 120, 180], [60, 50, 500, 600]],
+      bubbles: [],
+      sequence: [
+        { 0: 600, 1: 50, 2: 500, 3: 600, isPanel: true, bubbles: [[720, 90, 120, 180]] },
+        [720, 90, 120, 180],
+        { 0: 60, 1: 50, 2: 500, 3: 600, isPanel: true, bubbles: [] }
+      ]
+    },
+    'vol-01/page_002.jpg': {
+      panels: [[80, 80, 1000, 700], [80, 820, 1000, 600]],
+      bubbles: [],
+      sequence: [
+        { 0: 80, 1: 80, 2: 1000, 3: 700, isPanel: true, bubbles: [] },
+        { 0: 80, 1: 820, 2: 1000, 3: 600, isPanel: true, bubbles: [] }
+      ]
+    }
+  }
+};
 
 describe('shared/sidecar', () => {
   describe('normalizeBox', () => {

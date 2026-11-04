@@ -10,8 +10,8 @@ describe('routes/comics', () => {
   beforeAll(async () => {
     h = await startHarness({
       comics: [
-        { id: 'c1', series: 'Closer to Danger', guidedViewStatus: 'completed', metadata: '{"Series":"Closer to Danger","Number":"1"}' },
-        { id: 'c2', series: 'Berserk', metadata: '{"Series":"Berserk","Number":"1"}' }
+        { id: 'c1', series: 'Cobalt Horizon', guidedViewStatus: 'completed', metadata: '{"Series":"Cobalt Horizon","Number":"1"}' },
+        { id: 'c2', series: 'Aether Drift', metadata: '{"Series":"Aether Drift","Number":"1"}' }
       ],
       prefs: [{ preferenceType: 'comic', targetId: 'c1', mangaMode: 1 }],
       cbzPages: { c1: ['p1.png', 'p2.png'], c2: ['p1.png'] },
@@ -23,7 +23,7 @@ describe('routes/comics', () => {
   afterAll(() => h.close());
 
   it('lists comics with resolved mangaMode', async () => {
-    const { status, body } = await api(h.baseUrl, '/api/comics?q=danger');
+    const { status, body } = await api(h.baseUrl, '/api/comics?q=horizon');
     expect(status).toBe(200);
     expect(body.comics.length).toBe(1);
     expect(body.comics[0].id).toBe('c1');
@@ -39,7 +39,7 @@ describe('routes/comics', () => {
     expect(all.body.limit).toBe(50);
     expect(all.body.offset).toBe(0);
 
-    // ORDER BY series, name -> [Berserk(c2), Closer to Danger(c1)]
+    // ORDER BY series, name -> [Aether Drift(c2), Cobalt Horizon(c1)]
     const page = await api(h.baseUrl, '/api/comics?limit=1&offset=1');
     expect(page.status).toBe(200);
     expect(page.body.total).toBe(2);
@@ -59,7 +59,7 @@ describe('routes/comics', () => {
   it('returns one comic with mangaMode, or 404', async () => {
     const ok = await api(h.baseUrl, '/api/comics/c2');
     expect(ok.status).toBe(200);
-    expect(ok.body.comic.series).toBe('Berserk');
+    expect(ok.body.comic.series).toBe('Aether Drift');
     expect(ok.body.mangaMode).toBe(false);
 
     expect((await api(h.baseUrl, '/api/comics/nope')).status).toBe(404);
