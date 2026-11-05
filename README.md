@@ -1,10 +1,11 @@
 # GVE Now!
 
-Guided-view editor companion app for [Comics Now!](https://github.com/ComicsNow/comics-now). Serves a web UI and REST API
+Guided-view editor companion app for [Comics Now!](https://comicsnow.github.io/). Serves a web UI and REST API
 (port 3100 by default) for authoring guided-view data, and hosts the full-res
 WebP page cache shared with the comics-now reader.
 
-> New here? The [docs/WIKI.md](docs/WIKI.md) is a full instructional guide —
+> New here? Start at the [Comics Now! website](https://comicsnow.github.io/), then read
+> [docs/WIKI.md](docs/WIKI.md) — a full instructional guide covering
 > concepts, the editor, import/export, the data model, the API, and
 > troubleshooting. This README is the install/ops reference.
 
