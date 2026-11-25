@@ -17,12 +17,12 @@ function scaleBox(box, sx, sy, width, height) {
   let [x, y, w, h] = [Math.round(box[0] * sx), Math.round(box[1] * sy), Math.round(box[2] * sx), Math.round(box[3] * sy)];
   let clamped = false;
   if (x < 0) {
-    w += x;
+    w = Math.max(0, w + x);
     x = 0;
     clamped = true;
   }
   if (y < 0) {
-    h += y;
+    h = Math.max(0, h + y);
     y = 0;
     clamped = true;
   }
@@ -150,7 +150,8 @@ function matchPositionally(unmatchedTargets, sourceNames, matchedSources) {
 }
 
 function mapPages({ pages, pageOrder, targetPages, targetDims = {} }) {
-  const sourceNames = pageOrder && pageOrder.length > 0 ? pageOrder : Object.keys(pages);
+  const allSources = pageOrder && pageOrder.length > 0 ? pageOrder : Object.keys(pages || {});
+  const sourceNames = allSources.filter((name) => Boolean(pages && pages[name]));
   const maps = buildSourceMaps(sourceNames);
 
   const summary = { exact: 0, ci: 0, basename: 0, positional: 0, dropped: 0, emptyTarget: 0, scaled: 0, clamped: 0 };

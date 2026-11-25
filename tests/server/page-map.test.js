@@ -85,6 +85,28 @@ describe('server/page-map', () => {
     expect(four.summary.dropped).toBe(0);
   });
 
+  it('clamps scaled boxes with negative coordinates without producing negative dimensions', () => {
+    const src = { 'p1.jpg': page([[-100, -80, 50, 60]], { width: 100, height: 100 }) };
+    const r = mapPages({ pages: src, targetPages: ['p1.jpg'], targetDims: { 'p1.jpg': { width: 200, height: 200 } } });
+    expect(r.pages['p1.jpg'].panels[0][0]).toBe(0);
+    expect(r.pages['p1.jpg'].panels[0][1]).toBe(0);
+    expect(r.pages['p1.jpg'].panels[0][2]).toBeGreaterThanOrEqual(0);
+    expect(r.pages['p1.jpg'].panels[0][3]).toBeGreaterThanOrEqual(0);
+  });
+
+  it('handles pageOrder containing entries not present in pages without throwing', () => {
+    const src = { 'p1.jpg': page([[10, 20, 30, 40]]) };
+    expect(() => {
+      const r = mapPages({
+        pages: src,
+        pageOrder: ['p1.jpg', 'missing.jpg'],
+        targetPages: ['p1.jpg', 'p2.jpg'],
+        targetDims: {}
+      });
+      expect(r.pages['p1.jpg']).toBeTruthy();
+    }).not.toThrow();
+  });
+
   it('never mutates the source pages', () => {
     const src = { 'p1.jpg': page([[10, 20, 30, 40]]) };
     const snapshot = JSON.parse(JSON.stringify(src));
