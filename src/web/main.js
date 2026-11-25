@@ -11,8 +11,7 @@ const { renderInspector } = require('./editor/inspector');
 const { renderOrderPanel } = require('./editor/order-panel');
 const { translateBox, remapPoints } = require('./editor/interact');
 const { fitWidthScale } = require('./editor/view-math');
-const { boxKey } = require('../shared/box');
-const { geometryOrder } = require('../shared/reading-order');
+const { sortItemIdsByGeometry } = require('./editor/reading-sort');
 const { pruneWesternPanels } = require('../shared/sidecar');
 const { createLibraryView } = require('./library-view');
 const { createImportView } = require('./import-view');
@@ -199,16 +198,7 @@ function autoSort() {
   const page = store.getPage();
   if (!page || !page.items.length) return;
   pushSnapshot();
-  const panels = page.items.filter((i) => i.kind === 'panel').map((i) => i.box);
-  const bubbles = page.items.filter((i) => i.kind === 'bubble').map((i) => i.box);
-  const grouped = geometryOrder(panels, bubbles, store.getType());
-  const byKey = new Map(page.items.map((i) => [boxKey(i.box), i.id]));
-  const next = [];
-  for (const entry of grouped) {
-    const id = byKey.get(boxKey(entry.box));
-    if (id && !next.includes(id)) next.push(id);
-  }
-  for (const item of page.items) if (!next.includes(item.id)) next.push(item.id);
+  const next = sortItemIdsByGeometry(page.items, store.getType());
   store.setOrder(next);
 }
 

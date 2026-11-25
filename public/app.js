@@ -1127,7 +1127,7 @@
       function boxesEqual(a, b) {
         return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
       }
-      function boxKey2(b) {
+      function boxKey(b) {
         return b.join(",");
       }
       function clampBox(box, pageW, pageH) {
@@ -1177,7 +1177,7 @@
         isBox,
         roundBox,
         boxesEqual,
-        boxKey: boxKey2,
+        boxKey,
         clampBox,
         intersectionOverArea,
         iou,
@@ -1201,7 +1201,7 @@
         }
         return sorted;
       }
-      function geometryOrder2(panels, bubbles, type) {
+      function geometryOrder(panels, bubbles, type) {
         const allPanels = Array.isArray(panels) ? panels : [];
         const allBubbles = Array.isArray(bubbles) ? bubbles : [];
         if (type === "manga") {
@@ -1273,7 +1273,36 @@
         }
         return out;
       }
-      module.exports = { sortReadingOrder, geometryOrder: geometryOrder2 };
+      module.exports = { sortReadingOrder, geometryOrder };
+    }
+  });
+
+  // src/web/editor/reading-sort.js
+  var require_reading_sort = __commonJS({
+    "src/web/editor/reading-sort.js"(exports, module) {
+      "use strict";
+      var { boxesEqual } = require_box();
+      var { geometryOrder } = require_reading_order();
+      function sortItemIdsByGeometry2(items, type) {
+        if (!items || !items.length) return [];
+        const panels = items.filter((i) => i.kind === "panel").map((i) => i.box);
+        const bubbles = items.filter((i) => i.kind === "bubble").map((i) => i.box);
+        const grouped = geometryOrder(panels, bubbles, type);
+        const matched = /* @__PURE__ */ new Set();
+        const next = [];
+        for (const entry of grouped) {
+          const item = items.find((i) => !matched.has(i.id) && i.kind === entry.kind && boxesEqual(i.box, entry.box)) || items.find((i) => !matched.has(i.id) && boxesEqual(i.box, entry.box));
+          if (item) {
+            matched.add(item.id);
+            next.push(item.id);
+          }
+        }
+        for (const item of items) {
+          if (!matched.has(item.id)) next.push(item.id);
+        }
+        return next;
+      }
+      module.exports = { sortItemIdsByGeometry: sortItemIdsByGeometry2 };
     }
   });
 
@@ -1281,7 +1310,7 @@
   var require_sidecar = __commonJS({
     "src/shared/sidecar.js"(exports, module) {
       "use strict";
-      var { roundBox, boxesEqual, boxKey: boxKey2, intersectionOverArea, isBubbleInPanel, CHILD_IOA, WESTERN_BUBBLE_IOA } = require_box();
+      var { roundBox, boxesEqual, boxKey, intersectionOverArea, isBubbleInPanel, CHILD_IOA, WESTERN_BUBBLE_IOA } = require_box();
       function normalizeBox(v) {
         if (Array.isArray(v)) {
           return v.length === 4 && v.every((n) => typeof n === "number" && Number.isFinite(n)) ? roundBox(v) : null;
@@ -1409,8 +1438,8 @@
         const rawBubblePoints = Array.isArray(page.bubblePoints) ? page.bubblePoints : [];
         const parsedPanels = parseRawItems(rawPanels, rawPanelPoints);
         const parsedBubbles = parseRawItems(rawBubbles, rawBubblePoints);
-        const seqKeys = new Set(seqBoxes.map(boxKey2));
-        const editorWritten = parsedBubbles.boxes.length > 0 && parsedBubbles.boxes.every((b) => seqKeys.has(boxKey2(b)));
+        const seqKeys = new Set(seqBoxes.map(boxKey));
+        const editorWritten = parsedBubbles.boxes.length > 0 && parsedBubbles.boxes.every((b) => seqKeys.has(boxKey(b)));
         if (editorWritten) {
           for (let i = 0; i < parsedPanels.boxes.length; i++) push("panel", parsedPanels.boxes[i], parsedPanels.points[i]);
           for (let i = 0; i < parsedBubbles.boxes.length; i++) push("bubble", parsedBubbles.boxes[i], parsedBubbles.points[i]);
@@ -1794,7 +1823,10 @@
             }
             const breakdown = document.createElement("span");
             breakdown.className = "breakdown";
-            breakdown.textContent = Object.entries(candidate.breakdown || {}).map(([key, value]) => `${key} ${Number(value).toFixed(2)}`).join(" \xB7 ");
+            breakdown.textContent = Object.entries(candidate.breakdown || {}).map(([key, value]) => {
+              const score2 = typeof value === "object" && value !== null ? value.score : value;
+              return `${key} ${Number(score2).toFixed(2)}`;
+            }).join(" \xB7 ");
             row.appendChild(breakdown);
             listDiv.appendChild(row);
           });
@@ -2101,8 +2133,7 @@
   var { renderOrderPanel } = require_order_panel();
   var { translateBox, remapPoints } = require_interact();
   var { fitWidthScale } = require_view_math();
-  var { boxKey } = require_box();
-  var { geometryOrder } = require_reading_order();
+  var { sortItemIdsByGeometry } = require_reading_sort();
   var { pruneWesternPanels } = require_sidecar();
   var { createLibraryView } = require_library_view();
   var { createImportView } = require_import_view();
@@ -2256,16 +2287,7 @@
     const page = store.getPage();
     if (!page || !page.items.length) return;
     pushSnapshot();
-    const panels = page.items.filter((i) => i.kind === "panel").map((i) => i.box);
-    const bubbles = page.items.filter((i) => i.kind === "bubble").map((i) => i.box);
-    const grouped = geometryOrder(panels, bubbles, store.getType());
-    const byKey = new Map(page.items.map((i) => [boxKey(i.box), i.id]));
-    const next = [];
-    for (const entry of grouped) {
-      const id = byKey.get(boxKey(entry.box));
-      if (id && !next.includes(id)) next.push(id);
-    }
-    for (const item of page.items) if (!next.includes(item.id)) next.push(item.id);
+    const next = sortItemIdsByGeometry(page.items, store.getType());
     store.setOrder(next);
   }
   function renderAll() {
