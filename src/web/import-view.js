@@ -67,7 +67,10 @@ function createImportView(el, { api, onOpenEditor } = {}) {
       const breakdown = document.createElement('span');
       breakdown.className = 'breakdown';
       breakdown.textContent = Object.entries(candidate.breakdown || {})
-        .map(([key, value]) => `${key} ${Number(value).toFixed(2)}`)
+        .map(([key, value]) => {
+          const score = typeof value === 'object' && value !== null ? value.score : value;
+          return `${key} ${Number(score).toFixed(2)}`;
+        })
         .join(' · ');
       row.appendChild(breakdown);
 

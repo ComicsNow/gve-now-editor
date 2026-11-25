@@ -61,6 +61,33 @@ describe('web/import-view', () => {
     expect(rows[1].querySelector('input[type="radio"]').checked).toBe(false);
   });
 
+  it('correctly formats object-shaped score breakdown without NaN', async () => {
+    const el = document.createElement('div');
+    const api = makeApi();
+    api.scoreImport = jest.fn(async () => ({
+      type: 'western',
+      comic: FILE_DATA.comic,
+      candidates: [
+        {
+          comic: { id: 'c1', series: 'Alpha', name: 'Alpha 01.cbz', mangaMode: false },
+          score: 0.95,
+          sourceComicIdMatch: false,
+          breakdown: {
+            series: { weight: 0.45, score: 1 },
+            number: { weight: 0.2, score: 0.8 }
+          }
+        }
+      ]
+    }));
+    const view = createImportView(el, { api });
+    await view.loadFile(FILE_DATA);
+
+    const breakdownText = el.querySelector('.candidate-row .breakdown').textContent;
+    expect(breakdownText).toContain('series 1.00');
+    expect(breakdownText).toContain('number 0.80');
+    expect(breakdownText).not.toContain('NaN');
+  });
+
   it('applies with the selected candidate and mode, then shows the summary', async () => {
     const el = document.createElement('div');
     const api = makeApi();
