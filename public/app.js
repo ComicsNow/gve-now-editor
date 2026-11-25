@@ -421,7 +421,7 @@
         }
         return [x, y, w, h];
       }
-      function translateBox2(box, dx, dy, page, { clamp = true } = {}) {
+      function translateBox(box, dx, dy, page, { clamp = true } = {}) {
         let [x, y, w, h] = box;
         x += dx;
         y += dy;
@@ -446,12 +446,12 @@
         }
         return [minX, minY, maxX - minX, maxY - minY];
       }
-      function remapPoints2(points, oldBox, newBox) {
+      function remapPoints(points, oldBox, newBox) {
         const sx = oldBox[2] > 0 ? newBox[2] / oldBox[2] : 1;
         const sy = oldBox[3] > 0 ? newBox[3] / oldBox[3] : 1;
         return points.map(([px, py]) => [newBox[0] + (px - oldBox[0]) * sx, newBox[1] + (py - oldBox[1]) * sy]);
       }
-      module.exports = { MIN_BOX_SIZE, pointerToNative, boxFromPoints, resizeBox, translateBox: translateBox2, polygonBox, remapPoints: remapPoints2 };
+      module.exports = { MIN_BOX_SIZE, pointerToNative, boxFromPoints, resizeBox, translateBox, polygonBox, remapPoints };
     }
   });
 
@@ -513,7 +513,7 @@
       "use strict";
       var { renderOverlay } = require_overlay();
       var { getPageItem: getPageItem2 } = require_store();
-      var { pointerToNative, boxFromPoints, resizeBox, translateBox: translateBox2, polygonBox, MIN_BOX_SIZE } = require_interact();
+      var { pointerToNative, boxFromPoints, resizeBox, translateBox, polygonBox, MIN_BOX_SIZE } = require_interact();
       var { zoomAt, resolveView } = require_view_math();
       var ZOOM_SENSITIVITY = 1.0015;
       var PAN_CLICK_SLOP = 3;
@@ -638,7 +638,7 @@
           renderFreeDraft();
         });
         function handleMoveDrag(p) {
-          const box = translateBox2(drag.origBox, p.x - drag.start.x, p.y - drag.start.y, page).map(Math.round);
+          const box = translateBox(drag.origBox, p.x - drag.start.x, p.y - drag.start.y, page).map(Math.round);
           if (handlers.onUpdateBox) handlers.onUpdateBox(drag.id, box);
         }
         function handleResizeDrag(p) {
@@ -825,67 +825,6 @@
         };
       }
       module.exports = { createStage: createStage2 };
-    }
-  });
-
-  // src/web/editor/keyboard.js
-  var require_keyboard = __commonJS({
-    "src/web/editor/keyboard.js"(exports, module) {
-      "use strict";
-      function attachKeyboard2(el2, actions = {}) {
-        function onKeyDown(e) {
-          const target = e.target;
-          const tag = target && target.tagName ? target.tagName.toLowerCase() : "";
-          if (tag === "input" || tag === "textarea" || tag === "select" || target && target.isContentEditable) return;
-          const mod = e.ctrlKey || e.metaKey;
-          const key = typeof e.key === "string" ? e.key.toLowerCase() : "";
-          if (mod && key === "z" && !e.shiftKey) {
-            e.preventDefault();
-            if (actions.onUndo) actions.onUndo();
-            return;
-          }
-          if (mod && (key === "z" && e.shiftKey || key === "y")) {
-            e.preventDefault();
-            if (actions.onRedo) actions.onRedo();
-            return;
-          }
-          const step = e.shiftKey ? 10 : 1;
-          switch (e.key) {
-            case "ArrowLeft":
-              e.preventDefault();
-              if (actions.onNudge) actions.onNudge(-1, 0, step);
-              break;
-            case "ArrowRight":
-              e.preventDefault();
-              if (actions.onNudge) actions.onNudge(1, 0, step);
-              break;
-            case "ArrowUp":
-              e.preventDefault();
-              if (actions.onNudge) actions.onNudge(0, -1, step);
-              break;
-            case "ArrowDown":
-              e.preventDefault();
-              if (actions.onNudge) actions.onNudge(0, 1, step);
-              break;
-            case "Delete":
-            case "Backspace":
-              e.preventDefault();
-              if (actions.onDelete) actions.onDelete();
-              break;
-            case "Enter":
-              e.preventDefault();
-              if (actions.onEnter) actions.onEnter();
-              break;
-            case "Escape":
-              if (actions.onEscape) actions.onEscape();
-              break;
-            default:
-          }
-        }
-        el2.addEventListener("keydown", onKeyDown);
-        return () => el2.removeEventListener("keydown", onKeyDown);
-      }
-      module.exports = { attachKeyboard: attachKeyboard2 };
     }
   });
 
@@ -1306,6 +1245,136 @@
     }
   });
 
+  // src/web/editor/toolbar.js
+  var require_toolbar = __commonJS({
+    "src/web/editor/toolbar.js"(exports, module) {
+      "use strict";
+      function updateUndoButtons2(toolbarEl, undo2) {
+        if (!toolbarEl || !undo2) return;
+        const undoTarget = toolbarEl.querySelector(".undo");
+        const redoTarget = toolbarEl.querySelector(".redo");
+        if (undoTarget) undoTarget.disabled = !undo2.canUndo();
+        if (redoTarget) redoTarget.disabled = !undo2.canRedo();
+      }
+      function buildToolbar2(toolbarEl, {
+        session: session2,
+        storeType,
+        undo: undo2,
+        setMode: setMode2,
+        doUndo: doUndo2,
+        doRedo: doRedo2,
+        autoSort: autoSort2,
+        save: save2,
+        onExport,
+        resetSidecar: resetSidecar2,
+        onBack
+      } = {}) {
+        toolbarEl.textContent = "";
+        const title = document.createElement("div");
+        title.className = "editor-title";
+        const c = session2 && session2.comic || {};
+        title.textContent = c.series ? `${c.series} \u2014 ${c.name}` : c.name || session2 && session2.comicId || "";
+        const typeChip = document.createElement("span");
+        typeChip.className = `chip type-${storeType}`;
+        typeChip.textContent = storeType;
+        title.appendChild(typeChip);
+        const modes = document.createElement("div");
+        modes.className = "mode-group";
+        const modeDefs = [
+          ["select", "Select"],
+          ["panel", "Draw panel"],
+          ["bubble", "Draw bubble"],
+          ["panel-free", "Free-draw panel"],
+          ["bubble-free", "Free-draw bubble"]
+        ].filter(([mode]) => storeType !== "western" || !mode.startsWith("panel"));
+        for (const [mode, label] of modeDefs) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "mode-btn";
+          btn.dataset.mode = mode;
+          btn.textContent = label;
+          if (mode === "select") btn.classList.add("active");
+          btn.addEventListener("click", () => setMode2(mode));
+          modes.appendChild(btn);
+        }
+        const actions = document.createElement("div");
+        actions.className = "action-group";
+        const make = (cls, label, onClick, titleText) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = cls;
+          btn.textContent = label;
+          if (titleText) btn.title = titleText;
+          btn.addEventListener("click", onClick);
+          return btn;
+        };
+        actions.append(
+          make("undo", "Undo", doUndo2),
+          make("redo", "Redo", doRedo2),
+          make("autosort", "Re-sort by geometry", autoSort2),
+          make("save", "Save", save2),
+          make("export", "Export", onExport),
+          make("reset", "Reset sidecar", resetSidecar2),
+          make("back", "\u2190 Library", onBack)
+        );
+        toolbarEl.append(title, modes, actions);
+        updateUndoButtons2(toolbarEl, undo2);
+      }
+      module.exports = { buildToolbar: buildToolbar2, updateUndoButtons: updateUndoButtons2 };
+    }
+  });
+
+  // src/web/editor/page-list.js
+  var require_page_list = __commonJS({
+    "src/web/editor/page-list.js"(exports, module) {
+      "use strict";
+      function renderPageList2(container, { pageNames = [], currentPage, getPage, onSelectPage } = {}) {
+        container.textContent = "";
+        const head = document.createElement("div");
+        head.className = "pane-head";
+        head.textContent = `Pages (${pageNames.length})`;
+        container.appendChild(head);
+        pageNames.forEach((name, index) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "page-btn" + (name === currentPage ? " current" : "");
+          const p = getPage ? getPage(name) : null;
+          const count = p && p.items ? p.items.length : 0;
+          btn.textContent = `${index + 1}. ${name} (${count})`;
+          btn.addEventListener("click", () => {
+            if (onSelectPage) onSelectPage(name);
+          });
+          container.appendChild(btn);
+        });
+      }
+      module.exports = { renderPageList: renderPageList2 };
+    }
+  });
+
+  // src/web/editor/serializer.js
+  var require_serializer = __commonJS({
+    "src/web/editor/serializer.js"(exports, module) {
+      "use strict";
+      function serializeEditorPages2(pages) {
+        const out = {};
+        for (const [name, page] of Object.entries(pages || {})) {
+          out[name] = {
+            width: page.width,
+            height: page.height,
+            items: (page.items || []).map((i) => {
+              const itemOut = { id: i.id, kind: i.kind, box: i.box.map(Math.round) };
+              if (i.points) itemOut.points = i.points.map(([x, y]) => [Math.round(x), Math.round(y)]);
+              return itemOut;
+            }),
+            order: [...page.order || []]
+          };
+        }
+        return out;
+      }
+      module.exports = { serializeEditorPages: serializeEditorPages2 };
+    }
+  });
+
   // src/shared/sidecar.js
   var require_sidecar = __commonJS({
     "src/shared/sidecar.js"(exports, module) {
@@ -1494,7 +1563,7 @@
         }
         return normalizeWesternPage(page, seqBoxes, push, items, warnings);
       }
-      function pruneWesternPanels2(page, type) {
+      function pruneWesternPanels(page, type) {
         if (type !== "western") return page;
         const items = Array.isArray(page.items) ? page.items : [];
         if (!items.some((i) => i.kind === "bubble") || !items.some((i) => i.kind === "panel")) return page;
@@ -1629,9 +1698,199 @@
         regeneratePage,
         regenerateSidecar,
         mergeSidecar,
-        pruneWesternPanels: pruneWesternPanels2,
+        pruneWesternPanels,
         validateEditorDocument
       };
+    }
+  });
+
+  // src/web/editor/selection-ops.js
+  var require_selection_ops = __commonJS({
+    "src/web/editor/selection-ops.js"(exports, module) {
+      "use strict";
+      var { translateBox, remapPoints } = require_interact();
+      var { getPageItem: getPageItem2 } = require_store();
+      var { pruneWesternPanels } = require_sidecar();
+      function shapeFor2(item, box) {
+        return item && item.points ? remapPoints(item.points, item.box, box) : void 0;
+      }
+      function nudgeSelection2({ session: session2, store: store2, dx, dy, step, pushSnapshot: pushSnapshot2 }) {
+        const page = store2.getPage();
+        if (!session2 || !page || !session2.selection.size) return;
+        pushSnapshot2();
+        for (const id of session2.selection) {
+          const item = getPageItem2(page, id);
+          if (item) {
+            const box = translateBox(item.box, dx * step, dy * step, page, { clamp: false });
+            store2.updateItem(id, box, shapeFor2(item, box));
+          }
+        }
+      }
+      function deleteSelection2({ session: session2, store: store2, stage: stage2, renderInspectorPanel: renderInspectorPanel2, pushSnapshot: pushSnapshot2 }) {
+        if (!session2 || !session2.selection.size) return;
+        pushSnapshot2();
+        store2.removeItems([...session2.selection]);
+        session2.selection.clear();
+        stage2.setSelected(session2.selection);
+        renderInspectorPanel2();
+      }
+      function handleAddBox2({ session: session2, store: store2, stage: stage2, kind, box, points, pushSnapshot: pushSnapshot2, renderInspectorPanel: renderInspectorPanel2 }) {
+        if (!session2) return;
+        pushSnapshot2();
+        const at = session2.caret;
+        const id = store2.addItem(kind, box, at, points);
+        const page = store2.getPage();
+        const pruned = pruneWesternPanels(page, store2.getType());
+        if (pruned !== page) {
+          const keep = new Set(pruned.items.map((i) => i.id));
+          store2.removeItems(page.items.filter((i) => !keep.has(i.id)).map((i) => i.id));
+        }
+        session2.caret = store2.getPage().order.indexOf(id) + 1;
+        session2.selection = /* @__PURE__ */ new Set([id]);
+        stage2.setSelected(session2.selection);
+        renderInspectorPanel2();
+      }
+      module.exports = { shapeFor: shapeFor2, nudgeSelection: nudgeSelection2, deleteSelection: deleteSelection2, handleAddBox: handleAddBox2 };
+    }
+  });
+
+  // src/web/editor/keyboard.js
+  var require_keyboard = __commonJS({
+    "src/web/editor/keyboard.js"(exports, module) {
+      "use strict";
+      function attachKeyboard(el2, actions = {}) {
+        function onKeyDown(e) {
+          const target = e.target;
+          const tag = target && target.tagName ? target.tagName.toLowerCase() : "";
+          if (tag === "input" || tag === "textarea" || tag === "select" || target && target.isContentEditable) return;
+          const mod = e.ctrlKey || e.metaKey;
+          const key = typeof e.key === "string" ? e.key.toLowerCase() : "";
+          if (mod && key === "z" && !e.shiftKey) {
+            e.preventDefault();
+            if (actions.onUndo) actions.onUndo();
+            return;
+          }
+          if (mod && (key === "z" && e.shiftKey || key === "y")) {
+            e.preventDefault();
+            if (actions.onRedo) actions.onRedo();
+            return;
+          }
+          const step = e.shiftKey ? 10 : 1;
+          switch (e.key) {
+            case "ArrowLeft":
+              e.preventDefault();
+              if (actions.onNudge) actions.onNudge(-1, 0, step);
+              break;
+            case "ArrowRight":
+              e.preventDefault();
+              if (actions.onNudge) actions.onNudge(1, 0, step);
+              break;
+            case "ArrowUp":
+              e.preventDefault();
+              if (actions.onNudge) actions.onNudge(0, -1, step);
+              break;
+            case "ArrowDown":
+              e.preventDefault();
+              if (actions.onNudge) actions.onNudge(0, 1, step);
+              break;
+            case "Delete":
+            case "Backspace":
+              e.preventDefault();
+              if (actions.onDelete) actions.onDelete();
+              break;
+            case "Enter":
+              e.preventDefault();
+              if (actions.onEnter) actions.onEnter();
+              break;
+            case "Escape":
+              if (actions.onEscape) actions.onEscape();
+              break;
+            default:
+          }
+        }
+        el2.addEventListener("keydown", onKeyDown);
+        return () => el2.removeEventListener("keydown", onKeyDown);
+      }
+      module.exports = { attachKeyboard };
+    }
+  });
+
+  // src/web/editor-keyboard.js
+  var require_editor_keyboard = __commonJS({
+    "src/web/editor-keyboard.js"(exports, module) {
+      "use strict";
+      var { attachKeyboard } = require_keyboard();
+      function bindEditorKeyboard2({
+        target = document.body,
+        stageGetter,
+        sessionGetter,
+        nudgeSelection: nudgeSelection2,
+        deleteSelection: deleteSelection2,
+        doUndo: doUndo2,
+        doRedo: doRedo2,
+        setMode: setMode2,
+        renderInspectorPanel: renderInspectorPanel2
+      }) {
+        return attachKeyboard(target, {
+          onNudge: nudgeSelection2,
+          onDelete: () => {
+            const stage2 = stageGetter();
+            if (stage2 && stage2.isFreeDrawing()) stage2.popFreeVertex();
+            else deleteSelection2();
+          },
+          onEnter: () => {
+            const stage2 = stageGetter();
+            if (stage2 && stage2.isFreeDrawing()) stage2.closeFreeDraw();
+          },
+          onUndo: doUndo2,
+          onRedo: doRedo2,
+          onEscape: () => {
+            const stage2 = stageGetter();
+            if (stage2 && stage2.isFreeDrawing()) {
+              stage2.cancelFreeDraw();
+              return;
+            }
+            const session2 = sessionGetter();
+            if (!session2) return;
+            setMode2("select");
+            session2.selection.clear();
+            stage2.setSelected(session2.selection);
+            renderInspectorPanel2();
+          }
+        });
+      }
+      module.exports = { bindEditorKeyboard: bindEditorKeyboard2 };
+    }
+  });
+
+  // src/web/views.js
+  var require_views = __commonJS({
+    "src/web/views.js"(exports, module) {
+      "use strict";
+      function createViewRouter2(views, navButtons) {
+        function showView2(name) {
+          for (const [key, element] of Object.entries(views)) {
+            if (element) element.hidden = key !== name;
+          }
+          for (const [key, btn] of Object.entries(navButtons)) {
+            if (btn) btn.classList.toggle("active", key === name);
+          }
+        }
+        return { showView: showView2 };
+      }
+      function createToast2(toastEl, duration = 6e3) {
+        let timer = null;
+        return function toast2(message, kind = "info") {
+          toastEl.textContent = message;
+          toastEl.className = `toast toast-${kind}`;
+          toastEl.hidden = false;
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            toastEl.hidden = true;
+          }, duration);
+        };
+      }
+      module.exports = { createViewRouter: createViewRouter2, createToast: createToast2 };
     }
   });
 
@@ -2128,13 +2387,16 @@
   var { createStore, getPageItem } = require_store();
   var { createUndoStack } = require_undo();
   var { createStage } = require_stage();
-  var { attachKeyboard } = require_keyboard();
   var { renderInspector } = require_inspector();
   var { renderOrderPanel } = require_order_panel();
-  var { translateBox, remapPoints } = require_interact();
   var { fitWidthScale } = require_view_math();
   var { sortItemIdsByGeometry } = require_reading_sort();
-  var { pruneWesternPanels } = require_sidecar();
+  var { buildToolbar, updateUndoButtons } = require_toolbar();
+  var { renderPageList } = require_page_list();
+  var { serializeEditorPages } = require_serializer();
+  var { shapeFor, nudgeSelection, deleteSelection, handleAddBox } = require_selection_ops();
+  var { bindEditorKeyboard } = require_editor_keyboard();
+  var { createViewRouter, createToast } = require_views();
   var { createLibraryView } = require_library_view();
   var { createImportView } = require_import_view();
   var { createSettingsView } = require_settings_view();
@@ -2159,32 +2421,22 @@
   var undo = createUndoStack();
   var session = null;
   var stage = null;
-  var toastTimer = null;
-  function showView(name) {
-    el.library.hidden = name !== "library";
-    el.import.hidden = name !== "import";
-    el.settings.hidden = name !== "settings";
-    el.editor.hidden = name !== "editor";
-    el.navLibrary.classList.toggle("active", name === "library");
-    el.navImport.classList.toggle("active", name === "import");
-    el.navSettings.classList.toggle("active", name === "settings");
-  }
-  function toast(message, kind = "info") {
-    el.toast.textContent = message;
-    el.toast.className = `toast toast-${kind}`;
-    el.toast.hidden = false;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      el.toast.hidden = true;
-    }, 6e3);
-  }
+  var router = createViewRouter(
+    { library: el.library, import: el.import, settings: el.settings, editor: el.editor },
+    { library: el.navLibrary, import: el.navImport, settings: el.navSettings }
+  );
+  var showView = router.showView;
+  var toast = createToast(el.toast);
   function updateDirty() {
     el.dirtyFlag.hidden = !store.isDirty();
+  }
+  function updateUndoButtonsState() {
+    updateUndoButtons(el.toolbar, undo);
   }
   function pushSnapshot() {
     if (!session) return;
     undo.push(store.snapshot());
-    updateUndoButtons();
+    updateUndoButtonsState();
   }
   function applySnapshot(snap) {
     if (store.getCurrentPage() !== snap.page) store.setCurrentPage(snap.page);
@@ -2193,7 +2445,7 @@
     const ids = new Set(page.items.map((i) => i.id));
     session.selection = new Set([...session.selection].filter((id) => ids.has(id)));
     stage.setSelected(session.selection);
-    updateUndoButtons();
+    updateUndoButtonsState();
   }
   function doUndo() {
     if (!session) return;
@@ -2204,12 +2456,6 @@
     if (!session) return;
     const snap = undo.redo(store.snapshot());
     if (snap) applySnapshot(snap);
-  }
-  function updateUndoButtons() {
-    const undoTarget = el.toolbar.querySelector(".undo");
-    const redoTarget = el.toolbar.querySelector(".redo");
-    if (undoTarget) undoTarget.disabled = !undo.canUndo();
-    if (redoTarget) redoTarget.disabled = !undo.canRedo();
   }
   function handleSelect(id, { additive } = {}) {
     if (!session) return;
@@ -2223,32 +2469,22 @@
     stage.setSelected(session.selection);
     renderInspectorPanel();
   }
-  function shapeFor(item, box) {
-    return item && item.points ? remapPoints(item.points, item.box, box) : void 0;
-  }
   function handleAdd(kind, box, points) {
-    if (!session) return;
-    pushSnapshot();
-    const at = session.caret;
-    const id = store.addItem(kind, box, at, points);
-    const page = store.getPage();
-    const pruned = pruneWesternPanels(page, store.getType());
-    if (pruned !== page) {
-      const keep = new Set(pruned.items.map((i) => i.id));
-      store.removeItems(page.items.filter((i) => !keep.has(i.id)).map((i) => i.id));
-    }
-    session.caret = store.getPage().order.indexOf(id) + 1;
-    session.selection = /* @__PURE__ */ new Set([id]);
-    stage.setSelected(session.selection);
-    renderInspectorPanel();
+    handleAddBox({
+      session,
+      store,
+      stage,
+      kind,
+      box,
+      points,
+      pushSnapshot,
+      renderInspectorPanel
+    });
   }
   function handleUpdateBox(id, box) {
     const page = store.getPage();
     const item = getPageItem(page, id);
     store.updateItem(id, box, shapeFor(item, box));
-  }
-  function handleBeginEdit() {
-    pushSnapshot();
   }
   function handleSetNumber(id, number) {
     if (!session) return;
@@ -2262,26 +2498,6 @@
     for (const btn of el.toolbar.querySelectorAll(".mode-btn")) {
       btn.classList.toggle("active", btn.dataset.mode === mode);
     }
-  }
-  function nudgeSelection(dx, dy, step) {
-    const page = store.getPage();
-    if (!session || !page || !session.selection.size) return;
-    pushSnapshot();
-    for (const id of session.selection) {
-      const item = getPageItem(page, id);
-      if (item) {
-        const box = translateBox(item.box, dx * step, dy * step, page, { clamp: false });
-        store.updateItem(id, box, shapeFor(item, box));
-      }
-    }
-  }
-  function deleteSelection() {
-    if (!session || !session.selection.size) return;
-    pushSnapshot();
-    store.removeItems([...session.selection]);
-    session.selection.clear();
-    stage.setSelected(session.selection);
-    renderInspectorPanel();
   }
   function autoSort() {
     const page = store.getPage();
@@ -2338,24 +2554,15 @@
         pushSnapshot();
         store.updateItem(item.id, box, shapeFor(item, box));
       },
-      onDelete: deleteSelection
+      onDelete: () => deleteSelection({ session, store, stage, renderInspectorPanel, pushSnapshot })
     });
   }
-  function renderPageList() {
-    el.pageList.textContent = "";
-    const head = document.createElement("div");
-    head.className = "pane-head";
-    head.textContent = `Pages (${session.pageNames.length})`;
-    el.pageList.appendChild(head);
-    session.pageNames.forEach((name, index) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "page-btn" + (name === store.getCurrentPage() ? " current" : "");
-      const page = store.getPage(name);
-      const count = page ? page.items.length : 0;
-      btn.textContent = `${index + 1}. ${name} (${count})`;
-      btn.addEventListener("click", () => showPage(name));
-      el.pageList.appendChild(btn);
+  function renderPageListPane() {
+    renderPageList(el.pageList, {
+      pageNames: session ? session.pageNames : [],
+      currentPage: store.getCurrentPage(),
+      getPage: (name) => store.getPage(name),
+      onSelectPage: showPage
     });
   }
   function fitView(page) {
@@ -2368,78 +2575,29 @@
     const page = store.getPage();
     stage.setImage(api.pageImageUrl(session.comicId, name));
     fitView(page);
-    renderPageList();
+    renderPageListPane();
     renderAll();
   }
-  function buildToolbar() {
-    el.toolbar.textContent = "";
-    const title = document.createElement("div");
-    title.className = "editor-title";
-    const c = session.comic || {};
-    title.textContent = c.series ? `${c.series} \u2014 ${c.name}` : c.name || session.comicId;
-    const typeChip = document.createElement("span");
-    typeChip.className = `chip type-${store.getType()}`;
-    typeChip.textContent = store.getType();
-    title.appendChild(typeChip);
-    const modes = document.createElement("div");
-    modes.className = "mode-group";
-    const modeDefs = [
-      ["select", "Select"],
-      ["panel", "Draw panel"],
-      ["bubble", "Draw bubble"],
-      ["panel-free", "Free-draw panel"],
-      ["bubble-free", "Free-draw bubble"]
-    ].filter(([mode]) => store.getType() !== "western" || !mode.startsWith("panel"));
-    for (const [mode, label] of modeDefs) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "mode-btn";
-      btn.dataset.mode = mode;
-      btn.textContent = label;
-      if (mode === "select") btn.classList.add("active");
-      btn.addEventListener("click", () => setMode(mode));
-      modes.appendChild(btn);
-    }
-    const actions = document.createElement("div");
-    actions.className = "action-group";
-    const make = (cls, label, onClick, titleText) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = cls;
-      btn.textContent = label;
-      if (titleText) btn.title = titleText;
-      btn.addEventListener("click", onClick);
-      return btn;
-    };
-    actions.append(
-      make("undo", "Undo", doUndo),
-      make("redo", "Redo", doRedo),
-      make("autosort", "Re-sort by geometry", autoSort),
-      make("save", "Save", save),
-      make("export", "Export", () => window.open(api.exportUrl(session.comicId), "_blank")),
-      make("reset", "Reset sidecar", resetSidecar),
-      make("back", "\u2190 Library", () => {
+  function buildToolbarPane() {
+    buildToolbar(el.toolbar, {
+      session,
+      storeType: store.getType(),
+      undo,
+      setMode,
+      doUndo,
+      doRedo,
+      autoSort,
+      save,
+      onExport: () => window.open(api.exportUrl(session.comicId), "_blank"),
+      resetSidecar,
+      onBack: () => {
         if (confirmLeave()) showView("library");
-      })
-    );
-    el.toolbar.append(title, modes, actions);
-    updateUndoButtons();
+      }
+    });
   }
   async function save() {
     if (!session) return;
-    const pages = {};
-    for (const [name, page] of Object.entries(store.getDoc().pages)) {
-      pages[name] = {
-        width: page.width,
-        height: page.height,
-        items: page.items.map((i) => {
-          const out = { id: i.id, kind: i.kind, box: i.box.map(Math.round) };
-          if (i.points) out.points = i.points.map(([x, y]) => [Math.round(x), Math.round(y)]);
-          return out;
-        }),
-        order: [...page.order]
-      };
-    }
+    const pages = serializeEditorPages(store.getDoc().pages);
     try {
       const res = await api.saveGuided(session.comicId, {
         comicId: store.getComicId(),
@@ -2470,7 +2628,7 @@
       onAdd: handleAdd,
       onSelect: handleSelect,
       onUpdateBox: handleUpdateBox,
-      onBeginEdit: handleBeginEdit,
+      onBeginEdit: pushSnapshot,
       onEditNumber: handleSetNumber
     });
     stage.imgEl.addEventListener("load", () => {
@@ -2502,7 +2660,7 @@
       undo.clear();
       stage.setMode("select");
       showView("editor");
-      buildToolbar();
+      buildToolbarPane();
       showPage(store.getCurrentPage());
       if (doc.warnings && doc.warnings.length) {
         toast(`${doc.warnings.length} normalization warning(s) on load \u2014 first: ${doc.warnings[0]}`, "warn");
@@ -2533,28 +2691,16 @@
       showView("settings");
       settingsView.refresh();
     });
-    attachKeyboard(document.body, {
-      onNudge: nudgeSelection,
-      onDelete: () => {
-        if (stage && stage.isFreeDrawing()) stage.popFreeVertex();
-        else deleteSelection();
-      },
-      onEnter: () => {
-        if (stage && stage.isFreeDrawing()) stage.closeFreeDraw();
-      },
-      onUndo: doUndo,
-      onRedo: doRedo,
-      onEscape: () => {
-        if (stage && stage.isFreeDrawing()) {
-          stage.cancelFreeDraw();
-          return;
-        }
-        if (!session) return;
-        setMode("select");
-        session.selection.clear();
-        stage.setSelected(session.selection);
-        renderInspectorPanel();
-      }
+    bindEditorKeyboard({
+      target: document.body,
+      stageGetter: () => stage,
+      sessionGetter: () => session,
+      nudgeSelection: (dx, dy, step) => nudgeSelection({ session, store, dx, dy, step, pushSnapshot }),
+      deleteSelection: () => deleteSelection({ session, store, stage, renderInspectorPanel, pushSnapshot }),
+      doUndo,
+      doRedo,
+      setMode,
+      renderInspectorPanel
     });
     store.onChange(() => {
       if (session) renderAll();

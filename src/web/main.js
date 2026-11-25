@@ -6,13 +6,16 @@ const { api } = require('./api');
 const { createStore, getPageItem } = require('./editor/store');
 const { createUndoStack } = require('./editor/undo');
 const { createStage } = require('./editor/stage');
-const { attachKeyboard } = require('./editor/keyboard');
 const { renderInspector } = require('./editor/inspector');
 const { renderOrderPanel } = require('./editor/order-panel');
-const { translateBox, remapPoints } = require('./editor/interact');
 const { fitWidthScale } = require('./editor/view-math');
 const { sortItemIdsByGeometry } = require('./editor/reading-sort');
-const { pruneWesternPanels } = require('../shared/sidecar');
+const { buildToolbar, updateUndoButtons } = require('./editor/toolbar');
+const { renderPageList } = require('./editor/page-list');
+const { serializeEditorPages } = require('./editor/serializer');
+const { shapeFor, nudgeSelection, deleteSelection, handleAddBox } = require('./editor/selection-ops');
+const { bindEditorKeyboard } = require('./editor-keyboard');
+const { createViewRouter, createToast } = require('./views');
 const { createLibraryView } = require('./library-view');
 const { createImportView } = require('./import-view');
 const { createSettingsView } = require('./settings-view');
@@ -40,40 +43,26 @@ const store = createStore();
 const undo = createUndoStack();
 let session = null;
 let stage = null;
-let toastTimer = null;
 
-// ---------- view switching ----------
-
-function showView(name) {
-  el.library.hidden = name !== 'library';
-  el.import.hidden = name !== 'import';
-  el.settings.hidden = name !== 'settings';
-  el.editor.hidden = name !== 'editor';
-  el.navLibrary.classList.toggle('active', name === 'library');
-  el.navImport.classList.toggle('active', name === 'import');
-  el.navSettings.classList.toggle('active', name === 'settings');
-}
-
-function toast(message, kind = 'info') {
-  el.toast.textContent = message;
-  el.toast.className = `toast toast-${kind}`;
-  el.toast.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    el.toast.hidden = true;
-  }, 6000);
-}
+const router = createViewRouter(
+  { library: el.library, import: el.import, settings: el.settings, editor: el.editor },
+  { library: el.navLibrary, import: el.navImport, settings: el.navSettings }
+);
+const showView = router.showView;
+const toast = createToast(el.toast);
 
 function updateDirty() {
   el.dirtyFlag.hidden = !store.isDirty();
 }
 
-// ---------- editor state ----------
+function updateUndoButtonsState() {
+  updateUndoButtons(el.toolbar, undo);
+}
 
 function pushSnapshot() {
   if (!session) return;
   undo.push(store.snapshot());
-  updateUndoButtons();
+  updateUndoButtonsState();
 }
 
 function applySnapshot(snap) {
@@ -83,7 +72,7 @@ function applySnapshot(snap) {
   const ids = new Set(page.items.map((i) => i.id));
   session.selection = new Set([...session.selection].filter((id) => ids.has(id)));
   stage.setSelected(session.selection);
-  updateUndoButtons();
+  updateUndoButtonsState();
 }
 
 function doUndo() {
@@ -96,13 +85,6 @@ function doRedo() {
   if (!session) return;
   const snap = undo.redo(store.snapshot());
   if (snap) applySnapshot(snap);
-}
-
-function updateUndoButtons() {
-  const undoTarget = el.toolbar.querySelector('.undo');
-  const redoTarget = el.toolbar.querySelector('.redo');
-  if (undoTarget) undoTarget.disabled = !undo.canUndo();
-  if (redoTarget) redoTarget.disabled = !undo.canRedo();
 }
 
 function handleSelect(id, { additive } = {}) {
@@ -118,32 +100,17 @@ function handleSelect(id, { additive } = {}) {
   renderInspectorPanel();
 }
 
-// Free-drawn vertices follow their box. Remap is affine, so incremental
-// updates during a drag compose exactly; values stay float until save().
-function shapeFor(item, box) {
-  return item && item.points ? remapPoints(item.points, item.box, box) : undefined;
-}
-
 function handleAdd(kind, box, points) {
-  if (!session) return;
-  pushSnapshot();
-  const at = session.caret;
-  const id = store.addItem(kind, box, at, points);
-  // Western: panels are scaffold that only orders the bubbles — a page stops
-  // showing them the moment it has a bubble, so drop them right away rather
-  // than letting them trail the numbering until save.
-  const page = store.getPage();
-  const pruned = pruneWesternPanels(page, store.getType());
-  if (pruned !== page) {
-    const keep = new Set(pruned.items.map((i) => i.id));
-    store.removeItems(page.items.filter((i) => !keep.has(i.id)).map((i) => i.id));
-  }
-  // Pruning may have shifted the caret's neighborhood; anchor it after the new
-  // item wherever it landed.
-  session.caret = store.getPage().order.indexOf(id) + 1;
-  session.selection = new Set([id]);
-  stage.setSelected(session.selection);
-  renderInspectorPanel();
+  handleAddBox({
+    session,
+    store,
+    stage,
+    kind,
+    box,
+    points,
+    pushSnapshot,
+    renderInspectorPanel
+  });
 }
 
 function handleUpdateBox(id, box) {
@@ -152,11 +119,6 @@ function handleUpdateBox(id, box) {
   store.updateItem(id, box, shapeFor(item, box));
 }
 
-function handleBeginEdit() {
-  pushSnapshot();
-}
-
-// Typed position (1-based) from an order-row badge or an on-page badge.
 function handleSetNumber(id, number) {
   if (!session) return;
   pushSnapshot();
@@ -170,28 +132,6 @@ function setMode(mode) {
   for (const btn of el.toolbar.querySelectorAll('.mode-btn')) {
     btn.classList.toggle('active', btn.dataset.mode === mode);
   }
-}
-
-function nudgeSelection(dx, dy, step) {
-  const page = store.getPage();
-  if (!session || !page || !session.selection.size) return;
-  pushSnapshot();
-  for (const id of session.selection) {
-    const item = getPageItem(page, id);
-    if (item) {
-      const box = translateBox(item.box, dx * step, dy * step, page, { clamp: false });
-      store.updateItem(id, box, shapeFor(item, box));
-    }
-  }
-}
-
-function deleteSelection() {
-  if (!session || !session.selection.size) return;
-  pushSnapshot();
-  store.removeItems([...session.selection]);
-  session.selection.clear();
-  stage.setSelected(session.selection);
-  renderInspectorPanel();
 }
 
 function autoSort() {
@@ -254,26 +194,16 @@ function renderInspectorPanel() {
       pushSnapshot();
       store.updateItem(item.id, box, shapeFor(item, box));
     },
-    onDelete: deleteSelection
+    onDelete: () => deleteSelection({ session, store, stage, renderInspectorPanel, pushSnapshot })
   });
 }
 
-function renderPageList() {
-  el.pageList.textContent = '';
-  const head = document.createElement('div');
-  head.className = 'pane-head';
-  head.textContent = `Pages (${session.pageNames.length})`;
-  el.pageList.appendChild(head);
-
-  session.pageNames.forEach((name, index) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'page-btn' + (name === store.getCurrentPage() ? ' current' : '');
-    const page = store.getPage(name);
-    const count = page ? page.items.length : 0;
-    btn.textContent = `${index + 1}. ${name} (${count})`;
-    btn.addEventListener('click', () => showPage(name));
-    el.pageList.appendChild(btn);
+function renderPageListPane() {
+  renderPageList(el.pageList, {
+    pageNames: session ? session.pageNames : [],
+    currentPage: store.getCurrentPage(),
+    getPage: (name) => store.getPage(name),
+    onSelectPage: showPage
   });
 }
 
@@ -288,91 +218,33 @@ function showPage(name) {
   const page = store.getPage();
   stage.setImage(api.pageImageUrl(session.comicId, name));
   fitView(page);
-  renderPageList();
+  renderPageListPane();
   renderAll();
 }
 
-// ---------- toolbar ----------
-
-function buildToolbar() {
-  el.toolbar.textContent = '';
-
-  const title = document.createElement('div');
-  title.className = 'editor-title';
-  const c = session.comic || {};
-  title.textContent = c.series ? `${c.series} — ${c.name}` : c.name || session.comicId;
-  const typeChip = document.createElement('span');
-  typeChip.className = `chip type-${store.getType()}`;
-  typeChip.textContent = store.getType();
-  title.appendChild(typeChip);
-
-  const modes = document.createElement('div');
-  modes.className = 'mode-group';
-  // Western pages never author panels: they are detector scaffold for the
-  // bubble order, dropped as soon as a page has a bubble.
-  const modeDefs = [
-    ['select', 'Select'],
-    ['panel', 'Draw panel'],
-    ['bubble', 'Draw bubble'],
-    ['panel-free', 'Free-draw panel'],
-    ['bubble-free', 'Free-draw bubble']
-  ].filter(([mode]) => store.getType() !== 'western' || !mode.startsWith('panel'));
-  for (const [mode, label] of modeDefs) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'mode-btn';
-    btn.dataset.mode = mode;
-    btn.textContent = label;
-    if (mode === 'select') btn.classList.add('active');
-    btn.addEventListener('click', () => setMode(mode));
-    modes.appendChild(btn);
-  }
-
-  const actions = document.createElement('div');
-  actions.className = 'action-group';
-  const make = (cls, label, onClick, titleText) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = cls;
-    btn.textContent = label;
-    if (titleText) btn.title = titleText;
-    btn.addEventListener('click', onClick);
-    return btn;
-  };
-
-  actions.append(
-    make('undo', 'Undo', doUndo),
-    make('redo', 'Redo', doRedo),
-    make('autosort', 'Re-sort by geometry', autoSort),
-    make('save', 'Save', save),
-    make('export', 'Export', () => window.open(api.exportUrl(session.comicId), '_blank')),
-    make('reset', 'Reset sidecar', resetSidecar),
-    make('back', '← Library', () => {
+function buildToolbarPane() {
+  buildToolbar(el.toolbar, {
+    session,
+    storeType: store.getType(),
+    undo,
+    setMode,
+    doUndo,
+    doRedo,
+    autoSort,
+    save,
+    onExport: () => window.open(api.exportUrl(session.comicId), '_blank'),
+    resetSidecar,
+    onBack: () => {
       if (confirmLeave()) showView('library');
-    })
-  );
-
-  el.toolbar.append(title, modes, actions);
-  updateUndoButtons();
+    }
+  });
 }
 
 // ---------- save / reset ----------
 
 async function save() {
   if (!session) return;
-  const pages = {};
-  for (const [name, page] of Object.entries(store.getDoc().pages)) {
-    pages[name] = {
-      width: page.width,
-      height: page.height,
-      items: page.items.map((i) => {
-        const out = { id: i.id, kind: i.kind, box: i.box.map(Math.round) };
-        if (i.points) out.points = i.points.map(([x, y]) => [Math.round(x), Math.round(y)]);
-        return out;
-      }),
-      order: [...page.order]
-    };
-  }
+  const pages = serializeEditorPages(store.getDoc().pages);
   try {
     const res = await api.saveGuided(session.comicId, {
       comicId: store.getComicId(),
@@ -400,14 +272,13 @@ async function resetSidecar() {
 }
 
 // ---------- session ----------
-
 function ensureStage() {
   if (stage) return;
   stage = createStage(el.stageContainer, {
     onAdd: handleAdd,
     onSelect: handleSelect,
     onUpdateBox: handleUpdateBox,
-    onBeginEdit: handleBeginEdit,
+    onBeginEdit: pushSnapshot,
     onEditNumber: handleSetNumber
   });
   stage.imgEl.addEventListener('load', () => {
@@ -440,7 +311,7 @@ async function openComic(id) {
     undo.clear();
     stage.setMode('select');
     showView('editor');
-    buildToolbar();
+    buildToolbarPane();
     showPage(store.getCurrentPage());
     if (doc.warnings && doc.warnings.length) {
       toast(`${doc.warnings.length} normalization warning(s) on load — first: ${doc.warnings[0]}`, 'warn');
@@ -474,33 +345,19 @@ function boot() {
   el.navSettings.addEventListener('click', () => {
     if (!confirmLeave()) return;
     showView('settings');
-    // Re-read: the config file may have changed since the last visit.
     settingsView.refresh();
   });
 
-  attachKeyboard(document.body, {
-    onNudge: nudgeSelection,
-    onDelete: () => {
-      // While free-drawing, Backspace/Delete undoes the last vertex.
-      if (stage && stage.isFreeDrawing()) stage.popFreeVertex();
-      else deleteSelection();
-    },
-    onEnter: () => {
-      if (stage && stage.isFreeDrawing()) stage.closeFreeDraw();
-    },
-    onUndo: doUndo,
-    onRedo: doRedo,
-    onEscape: () => {
-      if (stage && stage.isFreeDrawing()) {
-        stage.cancelFreeDraw();
-        return;
-      }
-      if (!session) return;
-      setMode('select');
-      session.selection.clear();
-      stage.setSelected(session.selection);
-      renderInspectorPanel();
-    }
+  bindEditorKeyboard({
+    target: document.body,
+    stageGetter: () => stage,
+    sessionGetter: () => session,
+    nudgeSelection: (dx, dy, step) => nudgeSelection({ session, store, dx, dy, step, pushSnapshot }),
+    deleteSelection: () => deleteSelection({ session, store, stage, renderInspectorPanel, pushSnapshot }),
+    doUndo,
+    doRedo,
+    setMode,
+    renderInspectorPanel
   });
 
   store.onChange(() => {
