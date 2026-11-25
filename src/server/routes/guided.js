@@ -14,7 +14,12 @@ function createGuidedRouter({ config, db, store }) {
       const found = loadComic(db, config, req.params.id);
       if (!found) return res.status(404).json({ error: `comic not found: ${req.params.id}` });
 
-      const sidecar = store.read(req.params.id);
+      let sidecar = null;
+      try {
+        sidecar = store.read(req.params.id);
+      } catch {
+        sidecar = null;
+      }
       const type = sidecar && (sidecar.type === 'manga' || sidecar.type === 'western')
         ? sidecar.type
         : found.mangaMode ? 'manga' : 'western';

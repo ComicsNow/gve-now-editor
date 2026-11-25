@@ -46,6 +46,15 @@ describe('routes/guided', () => {
       const { status } = await api(h.baseUrl, '/api/comics/nope/guided');
       expect(status).toBe(404);
     });
+
+    it('degrades gracefully without 500 when sidecar has corrupted JSON', async () => {
+      fs.writeFileSync(path.join(h.config.guidedViewDir, 'c1.json'), '{corrupted json');
+      const { status, body } = await api(h.baseUrl, '/api/comics/c1/guided');
+      expect(status).toBe(200);
+      expect(body.comicId).toBe('c1');
+      expect(Object.keys(body.pages).sort()).toEqual(['p1.jpg', 'p2.jpg']);
+      h.store.write('c1', westernSidecar());
+    });
   });
 
   describe('PUT editor document', () => {

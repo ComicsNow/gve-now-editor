@@ -35,6 +35,14 @@ describe('server/sidecar-store', () => {
     expect(() => store.read('bad')).toThrow(/invalid json/i);
   });
 
+  it('safeRead returns null when file is missing or contains invalid JSON', () => {
+    expect(store.safeRead('missing')).toBeNull();
+    store.write('c1', { a: 1 });
+    expect(store.safeRead('c1')).toEqual({ a: 1 });
+    fs.writeFileSync(path.join(guidedViewDir, 'bad.json'), '{oops');
+    expect(store.safeRead('bad')).toBeNull();
+  });
+
   it('backup copies the current file under the comic id with a timestamped name', () => {
     expect(store.backup('c1')).toBeNull();
     store.write('c1', { v: 1 });

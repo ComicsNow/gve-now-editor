@@ -73,7 +73,21 @@ function createSidecarStore({ guidedViewDir, backupDir, now = () => new Date() }
     return pruned;
   }
 
-  return { pathFor, read, write, backup, pruneBackups };
+  const store = {
+    pathFor,
+    read,
+    safeRead(comicId) {
+      try {
+        return store.read(comicId);
+      } catch {
+        return null;
+      }
+    },
+    write,
+    backup,
+    pruneBackups
+  };
+  return store;
 }
 
 module.exports = { createSidecarStore };

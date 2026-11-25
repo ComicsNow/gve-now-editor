@@ -21,7 +21,7 @@ function createExportRouter({ config, db, store, appVersion }) {
       const found = loadComic(db, config, req.params.id);
       if (!found) return res.status(404).json({ error: `comic not found: ${req.params.id}` });
 
-      const sidecar = store.read(req.params.id);
+      const sidecar = store.safeRead ? store.safeRead(req.params.id) : store.read(req.params.id);
       if (!sidecar) return res.status(404).json({ error: 'comic has no guided view sidecar to export' });
 
       const pageOrder = appendMissing(await listPages(found.comic.path), Object.keys(sidecar.pages || {}));

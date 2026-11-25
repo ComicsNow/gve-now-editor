@@ -30,7 +30,12 @@ function loadComic(db, config, id) {
 // The sidecar's own type wins (the reader gates on mangaMode, but existing data
 // keeps its type); otherwise derive from the resolved mangaMode.
 function canonicalType(store, id, mangaMode) {
-  const sidecar = store.read(id);
+  let sidecar = null;
+  try {
+    sidecar = store.read(id);
+  } catch {
+    sidecar = null;
+  }
   if (sidecar && (sidecar.type === 'manga' || sidecar.type === 'western')) return sidecar.type;
   return mangaMode ? 'manga' : 'western';
 }

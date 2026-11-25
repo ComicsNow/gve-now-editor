@@ -64,7 +64,7 @@ function createImportRouter({ config, db, store }) {
       const found = loadComic(db, config, comicId);
       if (!found) return res.status(404).json({ error: `comic not found: ${comicId}` });
 
-      const sidecar = store.read(comicId);
+      const sidecar = store.safeRead ? store.safeRead(comicId) : store.read(comicId);
       const type = canonicalType(store, comicId, found.mangaMode);
 
       const names = await listPages(found.comic.path);

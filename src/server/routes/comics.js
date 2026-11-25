@@ -52,14 +52,15 @@ function createComicsRouter({ config, db, store }) {
       const found = loadComic(db, config, req.params.id);
       if (!found) return res.status(404).json({ error: `comic not found: ${req.params.id}` });
 
-      const names = appendMissing(await listPages(found.comic.path), Object.keys(store.read(req.params.id)?.pages || {}));
+      const readSidecar = (id) => (store.safeRead ? store.safeRead(id) : store.read(id));
+      const names = appendMissing(await listPages(found.comic.path), Object.keys(readSidecar(req.params.id)?.pages || {}));
       const dims = await pageDimensions(found.comic.path, names);
       const pages = names.map((name, index) => {
         const d = dims.get(name);
         return { index, name, width: d ? d.width : null, height: d ? d.height : null };
       });
 
-      const sidecar = store.read(req.params.id);
+      const sidecar = readSidecar(req.params.id);
       res.json({
         comicId: found.comic.id,
         pages,
