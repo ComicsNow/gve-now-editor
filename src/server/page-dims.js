@@ -25,12 +25,17 @@ function imageDimensions(buffer) {
         continue;
       }
       const marker = buffer[i + 1];
+      if (marker === 0xff) {
+        i++;
+        continue;
+      }
       if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) {
         i += 2;
         continue;
       }
-      if (marker === 0xda) break; // start of scan: no SOF found
+      if (marker === 0xd9 || marker === 0xda) break; // EOI or SOS: no SOF found
       const size = buffer.readUInt16BE(i + 2);
+      if (size < 2) break;
       const isSOF = marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
       if (isSOF) {
         return { width: buffer.readUInt16BE(i + 7), height: buffer.readUInt16BE(i + 5) };
